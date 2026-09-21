@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id    String @id @default(cuid())
+  email String @unique
+
+  passwordHash String
+  name         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trades  Trade[]
+  reviews WeeklyReview[]
+}
+
+model Trade {
+  id     String @id @default(cuid())
+  userId String
+
+  // trade details
+  symbol String
+  side   TradeSide
+
+  quantity    Decimal @db.Decimal(18, 8)
+  entryPrice  Decimal @db.Decimal(18, 8)
+  exitPrice   Decimal @db.Decimal(18, 8)
+  stopLoss    Decimal @db.Decimal(18, 8)
+  targetPrice Decimal @db.Decimal(18, 8)
+
+  strategyTag String?
+  emotionTag  EmotionTag
+  notes       String?
+
+  pnl             Decimal @db.Decimal(18, 8)
+  riskRewardRatio Decimal @db.Decimal(10, 4)
+
+  openedAt DateTime
+  closedAt DateTime
+
+  //linking of user
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, openedAt])
+  @@index([userId, emotionTag])
+  @@index([userId, strategyTag])
+}
+
+model WeeklyReview {
+  id          String   @id @default(cuid())
+  userId      String
+  weekStart   DateTime
+  summaryText String
+  stats       Json
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, weekStart])
+  @@index([userId])
+}
+
+enum TradeSide {
+  BUY
+  SELL
+}
+
+enum EmotionTag {
+  CONFIDENT
+  FOMO
+  BORED
+  ANXIOUS
+  REVENGE
+}
