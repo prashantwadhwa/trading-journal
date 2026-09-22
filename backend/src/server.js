@@ -5,6 +5,7 @@ const cookieParser = require("cookie-parser");
 
 const authRoutes = require("./routes/authRoutes")
 const analyticsRoutes = require("./routes/analyticsRoutes")
+const tradesRoutes = require("./routes/tradesRoutes")
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -23,6 +24,7 @@ app.get("/", (req,res)=>{
 
 app.use("/auth", authRoutes)
 app.use("/analytics", analyticsRoutes)
+app.use("/trades", tradesRoutes)
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
