@@ -39,6 +39,36 @@ router.get("/", verifyToken, async (req, res) => {
   }
 });
 
+router.get("/:id", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const tradeId = req.params.id;
+
+    const userTrade = await prisma.trade.findUnique({
+      where: {
+        id: tradeId,
+        userId,
+      },
+    });
+
+    if (!userTrade) {
+      return res.status(200).json({
+        message: "Trade not found",
+      });
+    }
+
+    return res.status(200).json({
+      message: "trade fetched successfully",
+      response: userTrade,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Something went wrong",
+    });
+  }
+});
+
 router.post("/", verifyToken, async (req, res) => {
   try {
     const userId = req.user.userId;
