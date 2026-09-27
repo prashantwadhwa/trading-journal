@@ -104,4 +104,67 @@ router.get("/summary", verifyToken, async (req, res) => {
     });
   }
 });
+
+router.get("/equity-curve", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const userTrades = await prisma.trade.findMany({
+      where: {
+        userId,
+      },
+      orderBy: {
+        closedAt: "asc",
+      },
+      select: {
+        closedAt: true,
+        pnl: true,
+      },
+    });
+
+    if (userTrades.length === 0) {
+      return res.status(200).json({
+        message: "No trades found",
+        response: [],
+      });
+    }
+
+    const dailyPnl = {};
+
+    userTrades.forEach((trade) => {
+      const date = new Date(trade.closedAt).toISOString().split("T")[0];
+
+      if (!dailyPnl[date]) {
+        dailyPnl[date] = 0;
+      }
+
+      dailyPnl[date] += Number(trade.pnl);
+    });
+
+    let cumulativePnl = 0;
+
+    const equityCurve = Object.entries(dailyPnl).map(([date, pnl]) => {
+      cumulativePnl += pnl;
+
+      return {
+        date,
+        dailyPnl: Number(pnl.toFixed(2)),
+        cumulativePnl: Number(cumulativePnl.toFixed(2)),
+      };
+    });
+
+    return res.status(200).json({
+      message: "Equity curve fetched successfully",
+      response: equityCurve,
+    });
+    
+  } catch (error) {
+    console.error("Equity curve error:", error);
+
+    return res.status(500).json({
+      message: "Failed to fetch equity curve",
+    });
+  }
+});
+
 module.exports = router;
