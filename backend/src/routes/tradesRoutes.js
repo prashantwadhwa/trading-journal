@@ -7,6 +7,9 @@ import Decimal from "decimal.js";
 
 const router = express.Router();
 
+const VALID_SIDES = ["BUY", "SELL"];
+const VALID_EMOTIONS = ["CONFIDENT", "FOMO", "BORED", "ANXIOUS", "REVENGE"];
+
 router.get("/", verifyToken, async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -32,17 +35,25 @@ router.get("/", verifyToken, async (req, res) => {
 
     // Emotion filter
     if (emotion) {
-      where.emotionTag = emotion.toUpperCase();
+      const e = String(emotion).toUpperCase();
+      if (!VALID_EMOTIONS.includes(e)) {
+        return res.status(400).json({ message: "Invalid emotion filter" });
+      }
+      where.emotionTag = e;
     }
 
     // Symbol filter
     if (symbol) {
-      where.symbol = symbol.toUpperCase();
+      where.symbol = String(symbol.toUpperCase());
     }
 
     // Trade side filter
     if (side) {
-      where.side = side.toUpperCase();
+      const s = String(side).toUpperCase();
+      if (!VALID_SIDES.includes(s)) {
+        return res.status(400).json({ message: "Invalid side filter" });
+      }
+      where.side = s;
     }
 
     // Date filters
@@ -50,7 +61,10 @@ router.get("/", verifyToken, async (req, res) => {
       where.openedAt = {};
 
       if (from) {
-        where.openedAt.gte = new Date(from);
+        const d = new Date(from);
+        if (isNaN(d))
+          return res.status(400).json({ message: "Invalid 'from' date" });
+        where.openedAt = { ...where.openedAt, gte: d };
       }
 
       if (to) {
@@ -86,18 +100,16 @@ router.get("/", verifyToken, async (req, res) => {
     }
 
     return res.status(200).json({
-      message: "trades fetched successfully",
+      message:
+        userTrades.length === 0
+          ? "No trades found"
+          : "Trades fetched successfully",
       response: {
         trades: userTrades,
-
-        pagination: {
-          page,
-          limit,
-          totalTrades,
-          totalPages,
-        },
+        pagination: { page, limit, totalTrades, totalPages },
       },
     });
+    
   } catch (error) {
     console.error(error);
     res.status(500).json({
