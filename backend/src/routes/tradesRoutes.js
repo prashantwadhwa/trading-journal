@@ -11,14 +11,72 @@ router.get("/", verifyToken, async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    const userTrades = await prisma.trade.findMany({
-      where: {
-        userId,
-      },
-      orderBy: {
-        openedAt: "desc",
-      },
-    });
+    // pagination query
+
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
+    const skip = (page - 1) * limit;
+
+    //filters
+
+    const { strategy, emotion, symbol, side, from, to } = req.query;
+
+    const where = {
+      userId,
+    };
+
+    // Strategy filter
+    if (strategy) {
+      where.strategyTag = strategy;
+    }
+
+    // Emotion filter
+    if (emotion) {
+      where.emotionTag = emotion.toUpperCase();
+    }
+
+    // Symbol filter
+    if (symbol) {
+      where.symbol = symbol.toUpperCase();
+    }
+
+    // Trade side filter
+    if (side) {
+      where.side = side.toUpperCase();
+    }
+
+    // Date filters
+    if (from || to) {
+      where.openedAt = {};
+
+      if (from) {
+        where.openedAt.gte = new Date(from);
+      }
+
+      if (to) {
+        const endDate = new Date(to);
+        endDate.setHours(23, 59, 59, 999);
+
+        where.openedAt.lte = endDate;
+      }
+    }
+
+    const [userTrades, totalTrades] = await Promise.all([
+      prisma.trade.findMany({
+        where,
+        orderBy: {
+          openedAt: "desc",
+        },
+        skip,
+        take: limit,
+      }),
+
+      prisma.trade.count({
+        where,
+      }),
+    ]);
+
+    const totalPages = Math.ceil(totalTrades / limit);
 
     if (userTrades.length === 0) {
       return res.status(200).json({
@@ -28,8 +86,17 @@ router.get("/", verifyToken, async (req, res) => {
     }
 
     return res.status(200).json({
-      message: "trades fetched success",
-      response: userTrades,
+      message: "trades fetched successfully",
+      response: {
+        trades: userTrades,
+
+        pagination: {
+          page,
+          limit,
+          totalTrades,
+          totalPages,
+        },
+      },
     });
   } catch (error) {
     console.error(error);
