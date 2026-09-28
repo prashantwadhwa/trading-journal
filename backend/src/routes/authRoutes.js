@@ -1,9 +1,11 @@
-require("dotenv").config();
-const bcrypt = require("bcrypt");
+import dotenv from "dotenv";
+import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import express from "express";
+import prisma from "../config/prisma.js";
 
-const express = require("express");
-const prisma = require("../config/prisma");
+dotenv.config();
+
 
 const router = express.Router();
 
@@ -12,7 +14,7 @@ router.post("/signup", async (req, res) => {
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
-      res.status(400).json({
+      return res.status(400).json({
         message: "Please fill the required fields",
       });
     }
@@ -22,7 +24,7 @@ router.post("/signup", async (req, res) => {
     });
 
     if (existingUser) {
-      res.status(400).json({
+      return res.status(400).json({
         message: "User already exists, Please LogIn",
       });
     }
@@ -56,51 +58,59 @@ router.post("/signup", async (req, res) => {
 });
 
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-   if ( !email || !password) {
-      res.status(400).json({
+    if (!email || !password) {
+      return res.status(400).json({
         message: "Please fill the required fields",
       });
     }
 
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user)
-    return res.status(400).json({ error: "Invalid email or password." });
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user)
+      return res.status(400).json({ error: "Invalid email or password." });
 
-  const isValidPassword = await bcrypt.compare(password, user.password);
-  if (!isValidPassword)
-    return res.status(400).json({ error: "Invalid email or password." });
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword)
+      return res.status(400).json({ error: "Invalid email or password." });
 
-  const accessToken = jwt.sign(
-    { userId: user.id },
-    process.env.JWT_ACCESS_SECRET,
-    { expiresIn: "15m" },
-  );
+    const accessToken = jwt.sign(
+      { userId: user.id },
+      process.env.JWT_ACCESS_SECRET,
+      { expiresIn: "15m" },
+    );
 
-  const refreshToken = jwt.sign(
-    { userId: user.id },
-    process.env.JWT_REFRESH_SECRET,
-    { expiresIn: "7d" },
-  );
+    const refreshToken = jwt.sign(
+      { userId: user.id },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: "7d" },
+    );
 
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
 
-  res.json({
-    message: "Logged in successfully!",
-    accessToken,
-  });
+    res.json({
+      message: "Logged in successfully!",
+      accessToken,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Something went wrong",
+    });
+  }
 });
 
 router.post("/refresh-token", (req, res) => {
   const cookies = req.cookies;
 
-  if (!cookies?.refreshToken)  return res.status(401).json({ error: "Unauthorized access." });
+  if (!cookies?.refreshToken)
+    return res.status(401).json({ error: "Unauthorized access." });
 
   const refreshToken = cookies.refreshToken;
 
@@ -108,7 +118,7 @@ router.post("/refresh-token", (req, res) => {
     if (err) {
       return res.status(403).json({
         message: "Forbidden access",
-        error: err
+        error: err,
       });
     }
 
@@ -124,13 +134,13 @@ router.post("/refresh-token", (req, res) => {
   });
 });
 
-router.post('/logout', (req, res) => {
-  res.clearCookie('refreshToken', {
+router.post("/logout", (req, res) => {
+  res.clearCookie("refreshToken", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict'
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
   });
-  res.json({ message: 'Logged out successfully!' });
+  res.json({ message: "Logged out successfully!" });
 });
 
-module.exports = router;
+export default router;

@@ -9,11 +9,13 @@
     "postinstall": "prisma skills sync || exit 0"
   },
   "keywords": [],
-  "type": "commonjs",
+  "type": "module",
   "dependencies": {
+    "@better-auth/prisma-adapter": "^1.7.6",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "bcrypt": "^6.0.0",
+    "better-auth": "^1.7.6",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "date-fns": "^4.4.0",

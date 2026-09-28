@@ -1,22 +1,24 @@
-require("dotenv").config();
+import dotenv from "dotenv";
+import express from "express";
+import prisma from "../config/prisma.js";
+import requireAuth from "../middleware/authMiddleware.js";
+import { endOfWeek, startOfWeek } from "date-fns";
 
-const express = require("express");
-const prisma = require("../config/prisma");
-const verifyToken = require("../middleware/authMiddleware");
-const { inThisWeek, endOfWeek, startOfWeek } = require("date-fns");
+dotenv.config();
+
 
 const router = express.Router();
 
-router.get("/dashboard", verifyToken, (req, res) => {
+router.get("/dashboard", requireAuth, (req, res) => {
   return res.json({
     message: "Hellow dashboard",
-    userId: req.user.userId,
+    userId: req.user.id,
   });
 });
 
-router.get("/summary", verifyToken, async (req, res) => {
+router.get("/summary", requireAuth, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const userTrades = await prisma.trade.findMany({
       where: {
@@ -105,9 +107,9 @@ router.get("/summary", verifyToken, async (req, res) => {
   }
 });
 
-router.get("/equity-curve", verifyToken, async (req, res) => {
+router.get("/equity-curve", requireAuth, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const userTrades = await prisma.trade.findMany({
       where: {
@@ -167,4 +169,4 @@ router.get("/equity-curve", verifyToken, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

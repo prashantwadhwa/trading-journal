@@ -1,26 +1,16 @@
-const jwt = require("jsonwebtoken")
+import { auth } from "../lib/auth.js";
 
-const verifyToken = (req, res, next) => {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
+export default async function requireAuth(req, res, next) {
+  const session = await auth.api.getSession({
+    headers: req.headers,
+  });
 
-  if (!token) {
-    return res
-      .status(401)
-      .json({ error: "Access token missing. Unauthorized." });
+  if (!session) {
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
-  jwt.verify(token, process.env.JWT_ACCESS_SECRET, (err, decoded) => {
-    if (err) {
-      return res.status(403).json({
-        message: "Invalid or expired access token",
-        error: err,
-      });
-    }
+  req.user = session.user;
+  req.session = session.session;
 
-    req.user = decoded;
-    next();
-  });
-};
-
-module.exports = verifyToken
+  next();
+}

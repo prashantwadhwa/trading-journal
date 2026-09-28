@@ -1,18 +1,20 @@
-require("dotenv").config();
-
-const express = require("express");
-const prisma = require("../config/prisma");
-const verifyToken = require("../middleware/authMiddleware");
+import dotenv from "dotenv";
+import express from "express";
+import prisma from "../config/prisma.js";
+import requireAuth from "../middleware/authMiddleware.js";
 import Decimal from "decimal.js";
+
+dotenv.config();
+
 
 const router = express.Router();
 
 const VALID_SIDES = ["BUY", "SELL"];
 const VALID_EMOTIONS = ["CONFIDENT", "FOMO", "BORED", "ANXIOUS", "REVENGE"];
 
-router.get("/", verifyToken, async (req, res) => {
+router.get("/", requireAuth, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     // pagination query
 
@@ -118,9 +120,9 @@ router.get("/", verifyToken, async (req, res) => {
   }
 });
 
-router.get("/:id", verifyToken, async (req, res) => {
+router.get("/:id", requireAuth, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const tradeId = req.params.id;
 
     const userTrade = await prisma.trade.findUnique({
@@ -148,9 +150,9 @@ router.get("/:id", verifyToken, async (req, res) => {
   }
 });
 
-router.post("/", verifyToken, async (req, res) => {
+router.post("/", requireAuth, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const {
       symbol,
       side,
@@ -240,9 +242,9 @@ router.post("/", verifyToken, async (req, res) => {
   }
 });
 
-router.patch("/:id", verifyToken, async (req, res) => {
+router.patch("/:id", requireAuth, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const tradeId = req.params.id;
 
     const {
@@ -346,9 +348,9 @@ router.patch("/:id", verifyToken, async (req, res) => {
   }
 });
 
-router.delete("/:id", verifyToken, async (req, res) => {
+router.delete("/:id", requireAuth, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const tradeId = req.params.id;
 
     const existingTrade = await prisma.trade.findFirst({
@@ -382,4 +384,4 @@ router.delete("/:id", verifyToken, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

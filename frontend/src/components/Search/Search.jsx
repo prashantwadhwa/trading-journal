@@ -10,7 +10,6 @@ function Search() {
 
         if (!symbol.trim()) return;
 
-        console.log("Searching for:", symbol.toUpperCase());
         searchStocks(symbol.toUpperCase());
     };
     return (
