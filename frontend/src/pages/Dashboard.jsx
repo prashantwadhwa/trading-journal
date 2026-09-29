@@ -14,46 +14,51 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LogOut } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
-
-const stats = [
-  {
-    label: "Win Rate",
-    value: "58.3%",
-    change: "+4.2%",
-    positive: true,
-  },
-  {
-    label: "Avg. R:R",
-    value: "1.82",
-    change: "+0.21",
-    positive: true,
-  },
-  {
-    label: "Total P&L",
-    value: "₹12,400",
-    change: "+18.4%",
-    positive: true,
-  },
-  {
-    label: "Trades This Week",
-    value: "14",
-    change: "3 today",
-    positive: true,
-  },
-];
+import EquityCurve from "@/components/EquityCurve/EquityCurve";
+import PnlHeatmap from "@/components/DailyHeatmap/DailyHeatmap";
 
 function Dashboard() {
   const navigate = useNavigate();
   const { data: session, isPending } = useAuth();
 
   const [trades, setTrades] = useState([]);
+  const [stats, setStats] = useState([]);
+  const [equityCurve, setEquityCurve] = useState([]);
+
+  const getStats = async () => {
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/analytics/summary`,
+        {
+          withCredentials: true,
+        },
+      );
+      setStats(res.data.response);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const getEquityCurve = async () => {
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/analytics/equity-curve`,
+        {
+          withCredentials: true,
+        },
+      );
+
+      setEquityCurve(res.data.response);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const getTrades = async () => {
     try {
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/trades`, {
         withCredentials: true,
       });
-      console.log(res);
 
       setTrades(res.data.response.trades);
     } catch (error) {
@@ -73,6 +78,8 @@ function Dashboard() {
   };
 
   useEffect(() => {
+    getStats();
+    getEquityCurve();
     getTrades();
   }, []);
 
@@ -102,7 +109,7 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      <header className="border-b border-zinc-800 bg-zinc-950/55 fixed w-full backdrop-blur-md">
+      <header className="border-b border-zinc-800 bg-zinc-950/55 fixed w-full backdrop-blur-md z-1">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <div>
             <div className="text-lg font-semibold tracking-tight">
@@ -177,7 +184,7 @@ function Dashboard() {
             <p className="mb-1 text-sm text-zinc-500">Monday, September 28</p>
 
             <h1 className="text-3xl font-semibold tracking-tight">
-              Good afternoon.
+              Good afternoon {session.user.name}.
             </h1>
 
             <p className="mt-2 text-sm text-zinc-400">
@@ -194,26 +201,66 @@ function Dashboard() {
         </section>
 
         <section className="trades-summary-kpi grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat) => (
-            <div
-              key={stat.label}
-              className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5"
-            >
-              <p className="text-sm text-zinc-500">{stat.label}</p>
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
+            <p className="text-sm text-zinc-500">Win Rate</p>
 
-              <div className="mt-2 flex items-end justify-between gap-4">
-                <p className="text-2xl font-semibold">{stat.value}</p>
+            <div className="mt-2 flex items-end justify-between gap-4">
+              <p className="text-2xl font-semibold">{stats.winRate}%</p>
 
-                <span
-                  className={`text-xs font-medium ${
-                    stat.positive ? "text-emerald-400" : "text-red-400"
-                  }`}
-                >
-                  {stat.change}
-                </span>
-              </div>
+              <span
+                className={`text-xs font-medium ${
+                  stats.positive ? "text-emerald-400" : "text-red-400"
+                }`}
+              >
+                {stats.change}
+              </span>
             </div>
-          ))}
+          </div>
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
+            <p className="text-sm text-zinc-500">Avg. R:R</p>
+
+            <div className="mt-2 flex items-end justify-between gap-4">
+              <p className="text-2xl font-semibold">{stats.avgRiskReward}</p>
+
+              <span
+                className={`text-xs font-medium ${
+                  stats.positive ? "text-emerald-400" : "text-red-400"
+                }`}
+              >
+                {stats.change}
+              </span>
+            </div>
+          </div>
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
+            <p className="text-sm text-zinc-500">Total P&L</p>
+
+            <div className="mt-2 flex items-end justify-between gap-4">
+              <p className="text-2xl font-semibold">₹ {stats.totalPnl}</p>
+
+              <span
+                className={`text-xs font-medium ${
+                  stats.positive ? "text-emerald-400" : "text-red-400"
+                }`}
+              >
+                {stats.change}
+              </span>
+            </div>
+          </div>
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
+            <p className="text-sm text-zinc-500">Trades This Week</p>
+
+            <div className="mt-2 flex items-end justify-between gap-4">
+              <p className="text-2xl font-semibold">{stats.tradesThisWeek}</p>
+
+              <span
+                className={`text-xs font-medium ${
+                  stats.positive ? "text-emerald-400" : "text-red-400"
+                }`}
+              >
+                {stats.change}
+              </span>
+            </div>
+          </div>
         </section>
 
         <section className="trades-analytics mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -234,24 +281,7 @@ function Dashboard() {
               </select>
             </div>
 
-            {/* Temporary chart placeholder */}
-            <div className="flex h-64 items-end gap-2 border-b border-zinc-800 px-2">
-              {[35, 42, 38, 50, 48, 61, 58, 70, 66, 78, 74, 88, 84, 96].map(
-                (height, index) => (
-                  <div
-                    key={index}
-                    className="flex-1 rounded-t bg-emerald-500/20"
-                    style={{ height: `${height}%` }}
-                  />
-                ),
-              )}
-            </div>
-
-            <div className="mt-4 flex justify-between text-xs text-zinc-600">
-              <span>Sep 1</span>
-              <span>Sep 15</span>
-              <span>Sep 28</span>
-            </div>
+            <EquityCurve data={equityCurve} />
           </div>
 
           <div className="alerts-sidebar rounded-xl border border-zinc-800 bg-zinc-900/60 p-6">
@@ -308,6 +338,10 @@ function Dashboard() {
               View behavior analysis
             </button>
           </div>
+        </section>
+
+        <section className="daily-pnl mt-6 ">
+          <PnlHeatmap data={equityCurve} />
         </section>
 
         <section className="recent-section mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3 items-start">
@@ -376,7 +410,7 @@ function Dashboard() {
 
                   <div className="text-right">
                     <span className="text-xs text-zinc-500">
-                      {trade.emotion}
+                      {trade.emotionTag}
                     </span>
                   </div>
                 </button>
