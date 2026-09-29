@@ -13,6 +13,7 @@ import {
   DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 import { LogOut } from "lucide-react";
+import { authClient } from "@/lib/auth-client";
 
 const stats = [
   {
@@ -49,9 +50,10 @@ function Dashboard() {
 
   const getTrades = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/trades", {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/trades`, {
         withCredentials: true,
       });
+      console.log(res);
 
       setTrades(res.data.response.trades);
     } catch (error) {
