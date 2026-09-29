@@ -1,0 +1,129 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+.app {
+  min-height: 100vh;
+}
+
+.header {
+  padding: 24px 32px;
+  border-bottom: 1px solid #1e293b;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.header p {
+  margin: 6px 0 0;
+  color: #94a3b8;
+}
+
+main {
+  margin: 0 auto;
+  padding: 32px;
+}
+
+.search {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+  align-items: center;
+  justify-content: center;
+}
+
+.search input {
+  flex: 1;
+  max-width: 500px;
+  padding: 12px 14px;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: #1e293b;
+  color: white;
+  font-size: 16px;
+}
+
+.search button {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.search button:hover {
+  background: #1d4ed8;
+}
+
+.stock-card {
+  padding: 30px;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  background: #111827;
+}
+
+.stock-card h2 {
+  margin-top: 0;
+}
+
+.spinner, .error-msg {
+  background: #09090b;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.loader {
+  --color-1: #22c55e;
+  --color-2: #000000;
+  --color-3: rgba(0, 0, 0, 0.1);
+  --size: 1px;
+
+  transform: translateZ(calc(1 * var(--size)));
+}
+.loader:after {
+  content: "$";
+  display: inline-block;
+  width: calc(48 * var(--size));
+  height: calc(48 * var(--size));
+  border-radius: 50%;
+  text-align: center;
+  line-height: calc(40 * var(--size));
+  font-size: calc(32 * var(--size));
+  font-weight: bold;
+  background: var(--color-1);
+  color: var(--color-2);
+  border: calc(4 * var(--size)) double;
+  box-sizing: border-box;
+  box-shadow: calc(2 * var(--size)) calc(2 * var(--size)) calc(2 * var(--size))
+    calc(1 * var(--size)) var(--color-3);
+  animation: coin-flip 4s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+}
+@keyframes coin-flip {
+  0%,
+  100% {
+    animation-timing-function: cubic-bezier(0.5, 0, 1, 0.5);
+  }
+  0% {
+    transform: rotateY(0deg);
+  }
+  50% {
+    transform: rotateY(1800deg);
+    animation-timing-function: cubic-bezier(0, 0.5, 0.5, 1);
+  }
+  100% {
+    transform: rotateY(3600deg);
+  }
+}

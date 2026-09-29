@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  emailVerified Boolean        @default(false)
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  trades        Trade[]
+  reviews       WeeklyReview[]
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+model Trade {
+  id              String     @id @default(cuid())
+  userId          String
+  symbol          String
+  side            TradeSide
+  quantity        Decimal    @db.Decimal(18, 8)
+  entryPrice      Decimal    @db.Decimal(18, 8)
+  exitPrice       Decimal    @db.Decimal(18, 8)
+  stopLoss        Decimal    @db.Decimal(18, 8)
+  targetPrice     Decimal    @db.Decimal(18, 8)
+  strategyTag     String?
+  emotionTag      EmotionTag
+  notes           String?
+  pnl             Decimal    @db.Decimal(18, 8)
+  riskRewardRatio Decimal    @db.Decimal(10, 4)
+  openedAt        DateTime
+  closedAt        DateTime
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, openedAt])
+  @@index([userId, emotionTag])
+  @@index([userId, strategyTag])
+}
+
+model WeeklyReview {
+  id          String   @id @default(cuid())
+  userId      String
+  weekStart   DateTime
+  summaryText String
+  stats       Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStart])
+  @@index([userId])
+}
+
+enum TradeSide {
+  BUY
+  SELL
+}
+
+enum EmotionTag {
+  CONFIDENT
+  FOMO
+  BORED
+  ANXIOUS
+  REVENGE
+}

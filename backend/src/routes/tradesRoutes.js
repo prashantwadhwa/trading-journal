@@ -1,0 +1,387 @@
+import dotenv from "dotenv";
+import express from "express";
+import prisma from "../config/prisma.js";
+import requireAuth from "../middleware/authMiddleware.js";
+import Decimal from "decimal.js";
+
+dotenv.config();
+
+
+const router = express.Router();
+
+const VALID_SIDES = ["BUY", "SELL"];
+const VALID_EMOTIONS = ["CONFIDENT", "FOMO", "BORED", "ANXIOUS", "REVENGE"];
+
+router.get("/", requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // pagination query
+
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
+    const skip = (page - 1) * limit;
+
+    //filters
+
+    const { strategy, emotion, symbol, side, from, to } = req.query;
+
+    const where = {
+      userId,
+    };
+
+    // Strategy filter
+    if (strategy) {
+      where.strategyTag = strategy;
+    }
+
+    // Emotion filter
+    if (emotion) {
+      const e = String(emotion).toUpperCase();
+      if (!VALID_EMOTIONS.includes(e)) {
+        return res.status(400).json({ message: "Invalid emotion filter" });
+      }
+      where.emotionTag = e;
+    }
+
+    // Symbol filter
+    if (symbol) {
+      where.symbol = String(symbol.toUpperCase());
+    }
+
+    // Trade side filter
+    if (side) {
+      const s = String(side).toUpperCase();
+      if (!VALID_SIDES.includes(s)) {
+        return res.status(400).json({ message: "Invalid side filter" });
+      }
+      where.side = s;
+    }
+
+    // Date filters
+    if (from || to) {
+      where.openedAt = {};
+
+      if (from) {
+        const d = new Date(from);
+        if (isNaN(d))
+          return res.status(400).json({ message: "Invalid 'from' date" });
+        where.openedAt = { ...where.openedAt, gte: d };
+      }
+
+      if (to) {
+        const endDate = new Date(to);
+        endDate.setHours(23, 59, 59, 999);
+
+        where.openedAt.lte = endDate;
+      }
+    }
+
+    const [userTrades, totalTrades] = await Promise.all([
+      prisma.trade.findMany({
+        where,
+        orderBy: {
+          openedAt: "desc",
+        },
+        skip,
+        take: limit,
+      }),
+
+      prisma.trade.count({
+        where,
+      }),
+    ]);
+
+    const totalPages = Math.ceil(totalTrades / limit);
+
+    if (userTrades.length === 0) {
+      return res.status(200).json({
+        message: "No trades found",
+        response: [],
+      });
+    }
+
+    return res.status(200).json({
+      message:
+        userTrades.length === 0
+          ? "No trades found"
+          : "Trades fetched successfully",
+      response: {
+        trades: userTrades,
+        pagination: { page, limit, totalTrades, totalPages },
+      },
+    });
+    
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Something went wrong",
+    });
+  }
+});
+
+router.get("/:id", requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const tradeId = req.params.id;
+
+    const userTrade = await prisma.trade.findUnique({
+      where: {
+        id: tradeId,
+        userId,
+      },
+    });
+
+    if (!userTrade) {
+      return res.status(200).json({
+        message: "Trade not found",
+      });
+    }
+
+    return res.status(200).json({
+      message: "trade fetched successfully",
+      response: userTrade,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Something went wrong",
+    });
+  }
+});
+
+router.post("/", requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const {
+      symbol,
+      side,
+      quantity,
+      entryPrice,
+      exitPrice,
+      stopLoss,
+      targetPrice,
+      strategyTag,
+      emotionTag,
+      notes,
+      openedAt,
+      closedAt,
+    } = req.body;
+
+    const qty = new Decimal(quantity);
+    const entry = new Decimal(entryPrice);
+    const exit = new Decimal(exitPrice);
+    const stop = new Decimal(stopLoss);
+    const target = new Decimal(targetPrice);
+
+    if (
+      !symbol ||
+      !side ||
+      !quantity ||
+      !entryPrice ||
+      !exitPrice ||
+      !stopLoss ||
+      !targetPrice ||
+      !openedAt ||
+      !closedAt
+    ) {
+      return res.status(400).json({
+        message: "Missing required trade fields",
+      });
+    }
+
+    let pnl = Decimal;
+    let risk = Decimal;
+    let reward = Decimal;
+
+    if (side === "BUY") {
+      pnl = exit.minus(entry).times(qty);
+      risk = entry.minus(stop).abs().times(qty);
+      reward = target.minus(entry).abs().times(qty);
+    } else if (side === "SELL") {
+      pnl = entry.minus(exit).times(qty);
+      risk = stop.minus(entry).abs().times(qty);
+      reward = entry.minus(target).abs().times(qty);
+    } else {
+      return res.status(400).json({
+        message: "Invalid trade side",
+      });
+    }
+
+    const riskRewardRatio = risk.isZero() ? new Decimal(0) : reward.div(risk);
+
+    const trade = await prisma.trade.create({
+      data: {
+        userId,
+        symbol,
+        side,
+        quantity,
+        entryPrice,
+        exitPrice,
+        stopLoss,
+        targetPrice,
+        strategyTag,
+        emotionTag,
+        notes,
+        pnl,
+        riskRewardRatio,
+        openedAt,
+        closedAt,
+      },
+    });
+
+    return res.status(200).json({
+      message: "Trade added",
+      response: trade,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Something went wrong",
+    });
+  }
+});
+
+router.patch("/:id", requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const tradeId = req.params.id;
+
+    const {
+      symbol,
+      side,
+      quantity,
+      entryPrice,
+      exitPrice,
+      stopLoss,
+      targetPrice,
+      strategyTag,
+      emotionTag,
+      notes,
+      openedAt,
+      closedAt,
+    } = req.body;
+
+    const existingTrade = await prisma.trade.findFirst({
+      where: {
+        id: tradeId,
+        userId,
+      },
+    });
+
+    if (!existingTrade) {
+      return res.status(404).json({
+        message: "Trade not found",
+      });
+    }
+
+    const finalSymbol = symbol ?? existingTrade.symbol;
+    const finalSide = side ?? existingTrade.side;
+    const finalQuantity = quantity ?? existingTrade.quantity;
+    const finalEntryPrice = entryPrice ?? existingTrade.entryPrice;
+    const finalExitPrice = exitPrice ?? existingTrade.exitPrice;
+    const finalStopLoss = stopLoss ?? existingTrade.stopLoss;
+    const finalTargetPrice = targetPrice ?? existingTrade.targetPrice;
+
+    const qty = new Decimal(finalQuantity);
+    const entry = new Decimal(finalEntryPrice);
+    const exit = new Decimal(finalExitPrice);
+    const stop = new Decimal(finalStopLoss);
+    const target = new Decimal(finalTargetPrice);
+
+    let pnl;
+    let risk;
+    let reward;
+
+    if (finalSide === "BUY") {
+      pnl = exit.minus(entry).times(qty);
+      risk = entry.minus(stop).abs().times(qty);
+      reward = target.minus(entry).abs().times(qty);
+    } else if (finalSide === "SELL") {
+      pnl = entry.minus(exit).times(qty);
+      risk = stop.minus(entry).abs().times(qty);
+      reward = entry.minus(target).abs().times(qty);
+    } else {
+      return res.status(400).json({
+        message: "Invalid trade side",
+      });
+    }
+
+    const riskRewardRatio = risk.isZero() ? new Decimal(0) : reward.div(risk);
+
+    const updatedTrade = await prisma.trade.update({
+      where: {
+        id: tradeId,
+      },
+      data: {
+        symbol: finalSymbol,
+        side: finalSide,
+        quantity: finalQuantity,
+        entryPrice: finalEntryPrice,
+        exitPrice: finalExitPrice,
+        stopLoss: finalStopLoss,
+        targetPrice: finalTargetPrice,
+
+        strategyTag: strategyTag ?? existingTrade.strategyTag,
+        emotionTag: emotionTag ?? existingTrade.emotionTag,
+        notes: notes ?? existingTrade.notes,
+
+        pnl,
+        riskRewardRatio,
+
+        openedAt: openedAt ? new Date(openedAt) : existingTrade.openedAt,
+
+        closedAt: closedAt ? new Date(closedAt) : existingTrade.closedAt,
+      },
+    });
+
+    return res.status(200).json({
+      message: "Trade updated successfully",
+      response: updatedTrade,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: "Something went wrong",
+    });
+  }
+});
+
+router.delete("/:id", requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const tradeId = req.params.id;
+
+    const existingTrade = await prisma.trade.findFirst({
+      where: {
+        id: tradeId,
+        userId,
+      },
+    });
+
+    if (!existingTrade) {
+      return res.status(404).json({
+        message: "Trade not found",
+      });
+    }
+
+    await prisma.trade.delete({
+      where: {
+        id: tradeId,
+      },
+    });
+
+    return res.status(200).json({
+      message: "Trade deleted successfully",
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: "Something went wrong",
+    });
+  }
+});
+
+export default router;
