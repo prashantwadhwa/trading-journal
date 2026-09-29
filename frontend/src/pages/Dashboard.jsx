@@ -41,45 +41,6 @@ const stats = [
   },
 ];
 
-const recentTrades = [
-  {
-    symbol: "NIFTY",
-    strategy: "Breakout",
-    side: "BUY",
-    pnl: "+₹1,240",
-    r: "+1.8R",
-    emotion: "Confident",
-    time: "Today, 10:42",
-  },
-  {
-    symbol: "TATASTEEL",
-    strategy: "Pullback",
-    side: "BUY",
-    pnl: "+₹680",
-    r: "+1.2R",
-    emotion: "Calm",
-    time: "Today, 09:54",
-  },
-  {
-    symbol: "BANKNIFTY",
-    strategy: "Reversal",
-    side: "SELL",
-    pnl: "-₹920",
-    r: "-1.0R",
-    emotion: "FOMO",
-    time: "Yesterday, 13:21",
-  },
-  {
-    symbol: "RELIANCE",
-    strategy: "Breakout",
-    side: "BUY",
-    pnl: "+₹1,850",
-    r: "+2.4R",
-    emotion: "Confident",
-    time: "Yesterday, 10:18",
-  },
-];
-
 function Dashboard() {
   const navigate = useNavigate();
   const { data: session, isPending } = useAuth();
@@ -139,7 +100,7 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      <header className="border-b border-zinc-800 bg-zinc-950">
+      <header className="border-b border-zinc-800 bg-zinc-950/55 fixed w-full backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <div>
             <div className="text-lg font-semibold tracking-tight">
@@ -208,7 +169,7 @@ function Dashboard() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-6 py-8">
+      <main className="mx-auto max-w-7xl px-6 py-8 pt-24!">
         <section className="greeting-header mb-8 flex items-end justify-between">
           <div>
             <p className="mb-1 text-sm text-zinc-500">Monday, September 28</p>
@@ -347,8 +308,8 @@ function Dashboard() {
           </div>
         </section>
 
-        <section className="recent-section mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3 items-start max-h-[600px]">
-          <div className="recent-trades rounded-xl border border-zinc-800 bg-zinc-900/60 lg:col-span-2 max-h-[70%] overflow-y-auto no-scrollbar">
+        <section className="recent-section mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3 items-start">
+          <div className="recent-trades min-h-0 rounded-xl border border-zinc-800 bg-zinc-900/60 lg:col-span-2">
             <div className="flex items-center justify-between border-b border-zinc-800 px-6 py-4">
               <div>
                 <h2 className="font-semibold">Recent Trades</h2>
@@ -366,7 +327,7 @@ function Dashboard() {
               </button>
             </div>
 
-            <div className="divide-y divide-zinc-800">
+            <div className="max-h-[420px] overflow-y-auto no-scrollbar divide-y divide-zinc-800">
               {trades.map((trade) => (
                 <button
                   key={trade?.id}
