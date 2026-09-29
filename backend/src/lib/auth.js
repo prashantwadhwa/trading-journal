@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 
 import prisma from "../config/prisma.js";
 
-dotenv.config()
+dotenv.config();
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
@@ -13,7 +13,7 @@ export const auth = betterAuth({
 
   baseURL: process.env.BETTER_AUTH_URL,
 
-  trustedOrigins: [process.env.FRONTEND_URL],
+  trustedOrigins: [process.env.FRONTEND_URL, process.env.FRONTEND_DEPLOYED_URL],
 
   emailAndPassword: {
     enabled: true,
