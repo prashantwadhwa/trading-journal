@@ -1,12 +1,13 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ChartCandlestick } from "lucide-react";
 import { toast } from "sonner";
-import axios from "axios";
 import { authClient } from "../lib/auth-client";
+import { useAuth } from "@/context/AuthContext";
 
 function Login() {
   const navigate = useNavigate();
+  const { data: session, isPending } = useAuth();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -33,7 +34,6 @@ function Login() {
         return;
       }
 
-
       toast.success("Logged in successfully!");
 
       navigate("/dashboard");
@@ -44,6 +44,20 @@ function Login() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!isPending && session) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [session, isPending, navigate]);
+
+  if (isPending) {
+    return (
+      <div className="spinner">
+        <span className="loader"></span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">

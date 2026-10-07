@@ -1,5 +1,13 @@
 import { useMemo } from "react";
-import './DailyHeatmap.scss'
+import "./DailyHeatmap.scss";
+import { getMonthlyStats } from "@/utils/MonthlyStats";
+import { getDailyStats } from "@/utils/DailyStats";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const getPnlColor = (pnl) => {
   if (pnl == null) return "bg-zinc-900";
@@ -22,72 +30,24 @@ const formatPnl = (pnl) => {
   }).format(pnl);
 };
 
-export default function PnlHeatmap({ data = pnlData }) {
-  // using useMemo here, so we keep the data here unless it changes and dont fetch it on every load. it will change
-  // when the data changes
-  const { weeks, months } = useMemo(() => {
-    if (!data?.length) {
-      return {
-        weeks: [],
-        months: [],
-      };
-    }
+const months = [
+  { name: "January", number: 1, days: 31 },
+  { name: "February", number: 2, days: 28 },
+  { name: "March", number: 3, days: 31 },
+  { name: "April", number: 4, days: 30 },
+  { name: "May", number: 5, days: 31 },
+  { name: "June", number: 6, days: 30 },
+  { name: "July", number: 7, days: 31 },
+  { name: "August", number: 8, days: 31 },
+  { name: "September", number: 9, days: 30 },
+  { name: "October", number: 10, days: 31 },
+  { name: "November", number: 11, days: 30 },
+  { name: "December", number: 12, days: 31 },
+];
 
-    const pnlMap = new Map(data.map((item) => [item.date, item.dailyPnl]));
-
-    const start = new Date(data[0].date);
-    const end = new Date(data[data.length - 1].date);
-
-    // Start from Sunday at first date
-    const firstDay = new Date(start);
-    firstDay.setDate(firstDay.getDate() - firstDay.getDay());
-
-    // End on Saturday after/at last date
-    const lastDay = new Date(end);
-    lastDay.setDate(lastDay.getDate() + (6 - lastDay.getDay()));
-
-    const weeks = [];
-    const months = [];
-
-    let current = new Date(firstDay);
-
-    // find weeks labels
-    while (current <= lastDay) {
-      const week = [];
-
-      for (let day = 0; day < 7; day++) {
-        const date = new Date(current);
-
-        const dateString = date.toISOString().split("T")[0];
-
-        week.push({
-          date: dateString,
-          pnl: pnlMap.get(dateString),
-        });
-
-        current.setDate(current.getDate() + 1);
-      }
-
-      weeks.push(week);
-    }
-
-    // Find month labels
-    weeks.forEach((week, index) => {
-      const firstDay = new Date(week[0].date);
-
-      if (firstDay.getDate() <= 7 || index === 0) {
-        months.push({
-          index,
-          label: firstDay.toLocaleDateString("en-US", {
-            month: "short",
-          }),
-        });
-      }
-    });
-
-    return { weeks, months };
-  }, [data]);
-
+export default function PnlHeatmap({ data, tradesData }) {
+  const monthlyStats = getMonthlyStats(tradesData, 2026);
+  
   return (
     <div className="heatmap rounded-xl border border-zinc-800 bg-zinc-950 p-5">
       <div className="mb-5 flex items-center justify-between">
@@ -114,62 +74,92 @@ export default function PnlHeatmap({ data = pnlData }) {
       {/* Heatmap */}
       <div className="overflow-x-auto">
         <div className="relative min-w-max">
-          {/* Month labels */}
-          <div className="ml-8 mb-2 flex h-4">
-            {months.map((month) => (
-              <div
-                key={`${month.label}-${month.index}`}
-                className="absolute text-[11px] text-zinc-500"
-                style={{
-                  left: `${month.index * 16 + 32}px`,
-                }}
-              >
-                {month.label}
-              </div>
-            ))}
-          </div>
+          <div className="calendar-container flex gap-10">
+            {months.map((month) => {
+              const dailyStats = getDailyStats(
+                tradesData,
+                2026,
+                month.number - 1,
+              );
 
-          <div className="flex">
-            {/* Day labels */}
-            <div className="mr-2 grid grid-rows-7 gap-1">
-              <span className="h-3 text-[10px] text-zinc-600">Sun</span>
+              const monthStats = monthlyStats[month.number - 1] ?? {
+                pnl: 0,
+                trades: 0,
+              };
 
-              <span className="h-3 text-[10px] text-zinc-600">Mon</span>
+              return (
+                <div
+                  className="month-section flex flex-col gap-2 justify-between items-center"
+                  key={`${month.name}-${month.index}`}
+                >
+                  <div className="month-header">{month.name}</div>
+                  <div className="month-calendar">
+                    <div className="days-grid grid grid-cols-7 gap-2">
+                      {Array.from({ length: month.days }, (_, i) => {
+                        const day = i + 1;
+                        const dayStats = dailyStats[day];
 
-              <span className="h-3 text-[10px] text-zinc-600">Tue</span>
+                        const pnl = dayStats?.pnl ?? 0;
 
-              <span className="h-3 text-[10px] text-zinc-600">Wed</span>
+                        return (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className={`calendar-day aspect-square cursor-pointer ${
+                                    pnl > 0
+                                      ? "bg-green-500/80"
+                                      : pnl < 0
+                                        ? "bg-red-500/80"
+                                        : "bg-gray-200/10"
+                                  }`}
+                                >
+                                  {day}
+                                </div>
+                              </TooltipTrigger>
 
-              <span className="h-3 text-[10px] text-zinc-600">Thu</span>
+                              <TooltipContent>
+                                <div className="text-xs">
+                                  <div className="font-medium">
+                                    {month.name} {day}
+                                  </div>
 
-              <span className="h-3 text-[10px] text-zinc-600">Fri</span>
+                                  <div
+                                    className={
+                                      pnl >= 0
+                                        ? "text-green-400"
+                                        : "text-red-400"
+                                    }
+                                  >
+                                    {pnl >= 0 ? "+" : ""}
+                                    {pnl.toLocaleString()} P&L
+                                  </div>
 
-              <span className="h-3 text-[10px] text-zinc-600">Sat</span>
-            </div>
-
-            {/* Weeks */}
-            <div className="flex gap-1">
-              {weeks.map((week, weekIndex) => (
-                <div key={weekIndex} className="grid grid-rows-7 gap-1">
-                  {week.map((day) => (
-                    <div
-                      key={day.date}
-                      className={`
-                        h-3 w-3
-                        rounded-[3px]
-                        ${getPnlColor(day.pnl)}
-                        cursor-pointer
-                        transition-all
-                        hover:scale-125
-                        hover:ring-1
-                        hover:ring-white/50
-                      `}
-                      title={`${day.date} • ${formatPnl(day.pnl)}`}
-                    />
-                  ))}
+                                  <div className="text-gray-400">
+                                    {dayStats?.trades ?? 0}{" "}
+                                    {(dayStats?.trades ?? 0) === 1
+                                      ? "trade"
+                                      : "trades"}
+                                  </div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div
+                    className={`month-pnl font-bold px-2.5 py-1 rounded-md border-gray-300/50 border ${
+                      monthStats.pnl >= 0 ? "text-green-400 bg-green-400/20" : "text-red-400 bg-red-400/20"
+                    }`}
+                    key={month.number}
+                  >
+                    {monthStats.pnl}
+                  </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
         </div>
       </div>
