@@ -1,19 +1,18 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 
 import authRoutes from "./routes/authRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
 import tradesRoutes from "./routes/tradesRoutes.js";
 
-dotenv.config();
 
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./lib/auth.js";
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 app.use(
   cors({
@@ -22,9 +21,9 @@ app.use(
   }),
 );
 
-app.all("/api/auth/*splat", toNodeHandler(auth));
 app.use(express.json());
 app.use(cookieParser());
+app.all("/api/auth/*splat", toNodeHandler(auth));
 
 app.get("/", (req, res) => {
   res.send("Hello from empty route!!!!");

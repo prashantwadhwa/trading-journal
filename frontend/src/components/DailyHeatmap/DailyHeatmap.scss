@@ -13,3 +13,34 @@
     cursor: pointer;
   }
 }
+
+.calendar-swiper {
+  .swiper-button-next,
+  .swiper-button-prev {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(31, 41, 55, 0.9);
+    border: 1px solid rgba(75, 85, 99, 0.8);
+    color: #e5e7eb;
+
+    &::after {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    &:hover {
+      background: rgba(55, 65, 81, 1);
+      color: #fff;
+    }
+  }
+
+  .swiper-pagination-bullet {
+    background: #6b7280;
+    opacity: 1;
+
+    &-active {
+      background: #22c55e;
+    }
+  }
+}

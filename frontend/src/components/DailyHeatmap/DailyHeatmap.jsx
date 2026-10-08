@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import "./DailyHeatmap.scss";
 import { getMonthlyStats } from "@/utils/MonthlyStats";
 import { getDailyStats } from "@/utils/DailyStats";
@@ -9,26 +8,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-const getPnlColor = (pnl) => {
-  if (pnl == null) return "bg-zinc-900";
-  if (pnl === 0) return "bg-zinc-800";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation, Pagination } from "swiper/modules";
 
-  if (pnl > 0) {
-    return "bg-emerald-500";
-  }
-
-  if (pnl < 0) return "bg-red-500";
-};
-
-const formatPnl = (pnl) => {
-  if (pnl == null) return "No trading";
-
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(pnl);
-};
+import "swiper/css";
+import "swiper/css/navigation";
+import "swiper/css/pagination";
 
 const months = [
   { name: "January", number: 1, days: 31 },
@@ -47,7 +32,7 @@ const months = [
 
 export default function PnlHeatmap({ data, tradesData }) {
   const monthlyStats = getMonthlyStats(tradesData, 2026);
-  
+
   return (
     <div className="heatmap rounded-xl border border-zinc-800 bg-zinc-950 p-5">
       <div className="mb-5 flex items-center justify-between">
@@ -72,9 +57,25 @@ export default function PnlHeatmap({ data, tradesData }) {
       </div>
 
       {/* Heatmap */}
-      <div className="overflow-x-auto">
-        <div className="relative min-w-max">
-          <div className="calendar-container flex gap-10">
+      <div className="">
+        <div className="calendar-container flex gap-10">
+          <Swiper
+            modules={[Navigation, Pagination]}
+            spaceBetween={20}
+            slidesPerView={4}
+            slidesPerGroup={4}
+            navigation
+            pagination={{ clickable: true }}
+            breakpoints={{
+              640: {
+                slidesPerView: 2,
+              },
+              1024: {
+                slidesPerView: 4,
+              },
+            }}
+            className="calendar-swiper w-full"
+          >
             {months.map((month) => {
               const dailyStats = getDailyStats(
                 tradesData,
@@ -88,79 +89,79 @@ export default function PnlHeatmap({ data, tradesData }) {
               };
 
               return (
-                <div
-                  className="month-section flex flex-col gap-2 justify-between items-center"
-                  key={`${month.name}-${month.index}`}
-                >
-                  <div className="month-header">{month.name}</div>
-                  <div className="month-calendar">
-                    <div className="days-grid grid grid-cols-7 gap-2">
-                      {Array.from({ length: month.days }, (_, i) => {
-                        const day = i + 1;
-                        const dayStats = dailyStats[day];
+                <SwiperSlide key={month.number}>
+                  <div
+                    className="month-section flex flex-col gap-2 h-full justify-between items-center"
+                    key={`${month.name}-${month.index}`}
+                  >
+                    <div className="month-header">{month.name}</div>
+                    <div className="month-calendar">
+                      <div className="days-grid grid grid-cols-7 gap-2">
+                        <TooltipProvider>
+                          {Array.from({ length: month.days }, (_, i) => {
+                            const day = i + 1;
+                            const dayStats = dailyStats[day];
 
-                        const pnl = dayStats?.pnl ?? 0;
+                            const pnl = dayStats?.pnl ?? 0;
 
-                        return (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div
-                                  className={`calendar-day aspect-square cursor-pointer ${
-                                    pnl > 0
+                            return (
+                              <Tooltip key={day}>
+                                <TooltipTrigger>
+                                  <div
+                                    className={`calendar-day aspect-square cursor-pointer ${pnl > 0
                                       ? "bg-green-500/80"
                                       : pnl < 0
                                         ? "bg-red-500/80"
                                         : "bg-gray-200/10"
-                                  }`}
-                                >
-                                  {day}
-                                </div>
-                              </TooltipTrigger>
-
-                              <TooltipContent>
-                                <div className="text-xs">
-                                  <div className="font-medium">
-                                    {month.name} {day}
-                                  </div>
-
-                                  <div
-                                    className={
-                                      pnl >= 0
-                                        ? "text-green-400"
-                                        : "text-red-400"
-                                    }
+                                      }`}
                                   >
-                                    {pnl >= 0 ? "+" : ""}
-                                    {pnl.toLocaleString()} P&L
+                                    {day}
                                   </div>
+                                </TooltipTrigger>
 
-                                  <div className="text-gray-400">
-                                    {dayStats?.trades ?? 0}{" "}
-                                    {(dayStats?.trades ?? 0) === 1
-                                      ? "trade"
-                                      : "trades"}
+                                <TooltipContent>
+                                  <div className="text-xs">
+                                    <div className="font-medium">
+                                      {month.name} {day}
+                                    </div>
+
+                                    <div
+                                      className={
+                                        pnl >= 0
+                                          ? "text-green-400"
+                                          : "text-red-400"
+                                      }
+                                    >
+                                      {pnl >= 0 ? "+" : ""}
+                                      {pnl.toLocaleString()} P&L
+                                    </div>
+
+                                    <div className="text-gray-400">
+                                      {dayStats?.trades ?? 0}{" "}
+                                      {(dayStats?.trades ?? 0) === 1
+                                        ? "trade"
+                                        : "trades"}
+                                    </div>
                                   </div>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        );
-                      })}
+                                </TooltipContent>
+                              </Tooltip>
+                            );
+                          })}
+                        </TooltipProvider>
+                      </div>
+                    </div>
+                    <div
+                      className={`month-pnl font-bold px-2.5 py-1 rounded-md border-gray-300/50 border ${monthStats.pnl >= 0 ? "text-green-400 bg-green-400/20" : "text-red-400 bg-red-400/20"
+                        }`}
+                      key={month.number}
+                    >
+                      {monthStats.pnl}
                     </div>
                   </div>
-                  <div
-                    className={`month-pnl font-bold px-2.5 py-1 rounded-md border-gray-300/50 border ${
-                      monthStats.pnl >= 0 ? "text-green-400 bg-green-400/20" : "text-red-400 bg-red-400/20"
-                    }`}
-                    key={month.number}
-                  >
-                    {monthStats.pnl}
-                  </div>
-                </div>
+                </SwiperSlide>
               );
             })}
-          </div>
+          </Swiper>
         </div>
       </div>
 
