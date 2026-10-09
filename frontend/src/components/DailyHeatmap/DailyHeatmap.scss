@@ -14,15 +14,35 @@
   }
 }
 
-.calendar-swiper {
+.calendar-swiper-controls {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 6px 10px;
+  border-radius: 9999px;
+  background: rgba(31, 41, 55, 0.95);
+  border: 1px solid rgba(75, 85, 99, 0.8);
+
   .swiper-button-next,
-  .swiper-button-prev {
-    width: 36px;
-    height: 36px;
+  .swiper-button-prev,
+  .custom-next,
+  .custom-prev {
+    position: static;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
     border-radius: 50%;
-    background: rgba(31, 41, 55, 0.9);
-    border: 1px solid rgba(75, 85, 99, 0.8);
+    background: transparent;
+    border: none;
     color: #e5e7eb;
+    cursor: pointer;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease;
 
     &::after {
       font-size: 14px;
@@ -30,16 +50,36 @@
     }
 
     &:hover {
-      background: rgba(55, 65, 81, 1);
+      background: rgba(75, 85, 99, 0.7);
       color: #fff;
+    }
+
+    svg {
+      width: 16px;
+      height: 16px;
     }
   }
 
-  .swiper-pagination-bullet {
-    background: #6b7280;
-    opacity: 1;
+  .custom-pagination {
+    position: static;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: auto;
 
-    &-active {
+    .swiper-pagination-bullet {
+      width: 7px;
+      height: 7px;
+      margin: 0;
+      border-radius: 9999px;
+      background: #6b7280;
+      opacity: 1;
+      transition: all 0.25s ease;
+    }
+
+    .swiper-pagination-bullet-active {
+      width: 18px;
       background: #22c55e;
     }
   }
