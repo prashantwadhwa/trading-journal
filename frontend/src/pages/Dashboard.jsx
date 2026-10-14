@@ -16,6 +16,7 @@ import { LogOut } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import EquityCurve from "@/components/EquityCurve/EquityCurve";
 import PnlHeatmap from "@/components/DailyHeatmap/DailyHeatmap";
+import AddTradeModal from "@/components/AddTradeModal/AddTradeModal";
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -129,12 +130,7 @@ function Dashboard() {
                 Import CSV
               </button>
 
-              <button
-                onClick={() => navigate("/trades/new")}
-                className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-400"
-              >
-                + Add Trade
-              </button>
+              <AddTradeModal />
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger className="h-10 w-10 overflow-hidden rounded-full outline-none ring-offset-zinc-950 transition hover:ring-2 hover:ring-emerald-500 focus:ring-2 focus:ring-emerald-500">
@@ -208,9 +204,8 @@ function Dashboard() {
               <p className="text-2xl font-semibold">{stats.winRate}%</p>
 
               <span
-                className={`text-xs font-medium ${
-                  stats.positive ? "text-emerald-400" : "text-red-400"
-                }`}
+                className={`text-xs font-medium ${stats.positive ? "text-emerald-400" : "text-red-400"
+                  }`}
               >
                 {stats.change}
               </span>
@@ -223,9 +218,8 @@ function Dashboard() {
               <p className="text-2xl font-semibold">{stats.avgRiskReward}</p>
 
               <span
-                className={`text-xs font-medium ${
-                  stats.positive ? "text-emerald-400" : "text-red-400"
-                }`}
+                className={`text-xs font-medium ${stats.positive ? "text-emerald-400" : "text-red-400"
+                  }`}
               >
                 {stats.change}
               </span>
@@ -238,9 +232,8 @@ function Dashboard() {
               <p className="text-2xl font-semibold">₹ {stats.totalPnl}</p>
 
               <span
-                className={`text-xs font-medium ${
-                  stats.positive ? "text-emerald-400" : "text-red-400"
-                }`}
+                className={`text-xs font-medium ${stats.positive ? "text-emerald-400" : "text-red-400"
+                  }`}
               >
                 {stats.change}
               </span>
@@ -253,9 +246,8 @@ function Dashboard() {
               <p className="text-2xl font-semibold">{stats.tradesThisWeek}</p>
 
               <span
-                className={`text-xs font-medium ${
-                  stats.positive ? "text-emerald-400" : "text-red-400"
-                }`}
+                className={`text-xs font-medium ${stats.positive ? "text-emerald-400" : "text-red-400"
+                  }`}
               >
                 {stats.change}
               </span>
@@ -341,7 +333,7 @@ function Dashboard() {
         </section>
 
         <section className="daily-pnl mt-6 ">
-          <PnlHeatmap data={stats} tradesData = {trades} />
+          <PnlHeatmap data={stats} tradesData={trades} />
         </section>
 
         <section className="recent-section mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3 items-start">
@@ -384,11 +376,10 @@ function Dashboard() {
 
                   <div>
                     <span
-                      className={`rounded px-2 py-1 text-[10px] font-semibold ${
-                        trade.side === "BUY"
+                      className={`rounded px-2 py-1 text-[10px] font-semibold ${trade.side === "BUY"
                           ? "bg-emerald-500/10 text-emerald-400"
                           : "bg-red-500/10 text-red-400"
-                      }`}
+                        }`}
                     >
                       {trade.side}
                     </span>
@@ -396,11 +387,10 @@ function Dashboard() {
 
                   <div>
                     <p
-                      className={`text-sm font-medium ${
-                        trade.pnl.startsWith("+")
+                      className={`text-sm font-medium ${trade.pnl.startsWith("+")
                           ? "text-emerald-400"
                           : "text-red-400"
-                      }`}
+                        }`}
                     >
                       {trade.pnl}
                     </p>
