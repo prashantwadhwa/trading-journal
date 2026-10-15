@@ -147,7 +147,7 @@ function AddTradeModal({ onTradeAdded }) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={setOpen} data-lenis-prevent>
       <DialogTrigger className="rounded-lg bg-emerald-500 px-4! py-2! text-sm font-semibold text-zinc-950 hover:bg-emerald-400">
         + Add Trade
       </DialogTrigger>

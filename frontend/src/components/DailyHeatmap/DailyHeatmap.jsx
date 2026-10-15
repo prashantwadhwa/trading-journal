@@ -32,7 +32,7 @@ const months = [
   { name: "December", number: 12, days: 31 },
 ];
 
-export default function PnlHeatmap({ data, tradesData }) {
+export default function PnlHeatmap({ data, tradesData, formatCurrency }) {
   const monthlyStats = getMonthlyStats(tradesData, 2026);
   const prevRef = useRef(null);
   const nextRef = useRef(null);
@@ -181,7 +181,7 @@ export default function PnlHeatmap({ data, tradesData }) {
                         }`}
                       key={month.number}
                     >
-                      Monthly P&L: {monthStats.pnl}
+                      Monthly P&L: {formatCurrency(monthStats.pnl)}
                     </div>
                   </div>
                 </SwiperSlide>

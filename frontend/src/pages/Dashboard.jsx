@@ -83,8 +83,8 @@ function Dashboard() {
       console.error("Logout failed:", error);
       return;
     }
-
-    navigate("/login");
+    
+    navigate("/");
   };
 
   useEffect(() => {
@@ -391,7 +391,7 @@ function Dashboard() {
         </section>
 
         <section className="daily-pnl mt-6 ">
-          <PnlHeatmap data={stats} tradesData={trades} />
+          <PnlHeatmap data={stats} tradesData={trades} formatCurrency={formatCurrency}/>
         </section>
 
         <section className="recent-section mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3 items-start">
