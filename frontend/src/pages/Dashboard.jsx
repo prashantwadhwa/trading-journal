@@ -392,7 +392,11 @@ function Dashboard() {
         </section>
 
         <section className="daily-pnl mt-6 ">
-          <PnlHeatmap data={stats} tradesData={trades} formatCurrency={formatCurrency}/>
+          <PnlHeatmap
+            data={stats}
+            tradesData={trades}
+            formatCurrency={formatCurrency}
+          />
         </section>
 
         <section className="recent-section mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3 items-start">
@@ -415,7 +419,7 @@ function Dashboard() {
             </div>
 
             <div className="max-h-[420px] overflow-y-auto no-scrollbar divide-y divide-zinc-800">
-              {trades.length === 0 ? (
+              {(trades ?? []).length === 0 ? (
                 <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
                   <p className="text-sm font-medium text-zinc-300">
                     No trades yet

@@ -102,14 +102,14 @@ export default function PnlHeatmap({ data, tradesData, formatCurrency }) {
             }}
             className="calendar-swiper w-full"
           >
-            {months.map((month) => {
+            {months?.map((month) => {
               const dailyStats = getDailyStats(
-                tradesData,
+                tradesData ?? [],
                 2026,
                 month.number - 1,
               );
 
-              const monthStats = monthlyStats[month.number - 1] ?? {
+              const monthStats = monthlyStats?.[month.number - 1] ?? {
                 pnl: 0,
                 trades: 0,
               };

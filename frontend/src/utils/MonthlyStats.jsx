@@ -1,5 +1,5 @@
 export function getMonthlyStats(trades, year) {
-  return trades.reduce((acc, trade) => {
+  return trades?.reduce((acc, trade) => {
     const date = new Date(trade.closedAt);
 
     if (date.getFullYear() !== year) {
