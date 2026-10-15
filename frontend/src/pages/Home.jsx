@@ -494,7 +494,7 @@ export default function Home() {
               </p>
 
               <a
-                href="/register"
+                href="/signup"
                 className="mt-8 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-400 px-7 py-4 font-semibold text-slate-950 transition hover:bg-emerald-300"
               >
                 Get started today
