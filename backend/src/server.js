@@ -7,7 +7,6 @@ import authRoutes from "./routes/authRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
 import tradesRoutes from "./routes/tradesRoutes.js";
 
-
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./lib/auth.js";
 
@@ -16,11 +15,13 @@ const PORT = process.env.PORT || 5001;
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin: [
+      process.env.FRONTEND_URL,
+      process.env.FRONTEND_DEPLOYED_URL,
+    ].filter(Boolean),
     credentials: true,
   }),
 );
-
 app.use(express.json());
 app.use(cookieParser());
 app.all("/api/auth/*splat", toNodeHandler(auth));
