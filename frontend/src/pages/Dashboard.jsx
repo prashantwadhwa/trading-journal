@@ -17,6 +17,7 @@ import { authClient } from "@/lib/auth-client";
 import EquityCurve from "@/components/EquityCurve/EquityCurve";
 import PnlHeatmap from "@/components/DailyHeatmap/DailyHeatmap";
 import AddTradeModal from "@/components/AddTradeModal/AddTradeModal";
+import { toast } from "sonner";
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -83,7 +84,7 @@ function Dashboard() {
       console.error("Logout failed:", error);
       return;
     }
-    
+
     navigate("/");
   };
 
