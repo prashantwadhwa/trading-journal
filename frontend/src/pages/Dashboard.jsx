@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
@@ -12,59 +12,69 @@ import {
   DropdownMenuTrigger,
   DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
-import { LogOut } from "lucide-react";
+import { Loader2, LogOut } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import EquityCurve from "@/components/EquityCurve/EquityCurve";
 import PnlHeatmap from "@/components/DailyHeatmap/DailyHeatmap";
+import AddTradeModal from "@/components/AddTradeModal/AddTradeModal";
 
 function Dashboard() {
   const navigate = useNavigate();
   const { data: session, isPending } = useAuth();
 
   const [trades, setTrades] = useState([]);
-  const [stats, setStats] = useState([]);
+  const [stats, setStats] = useState({
+    winRate: 0,
+    avgRiskReward: 0,
+    totalPnl: 0,
+    tradesThisWeek: 0,
+    positive: true,
+    change: "",
+  });
   const [equityCurve, setEquityCurve] = useState([]);
 
-  const getStats = async () => {
-    try {
-      const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/analytics/summary`,
-        {
-          withCredentials: true,
-        },
-      );
-      setStats(res.data.response);
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const getEquityCurve = async () => {
-    try {
-      const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/analytics/equity-curve`,
-        {
-          withCredentials: true,
-        },
-      );
+  const today = new Intl.DateTimeFormat("en-IN", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(new Date());
 
-      setEquityCurve(res.data.response);
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  const hour = new Date().getHours();
 
-  const getTrades = async () => {
-    try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/trades`, {
+  const greeting =
+    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+
+  const getStats = useCallback(async () => {
+    const res = await axios.get(
+      `${import.meta.env.VITE_API_URL}/analytics/summary`,
+      {
         withCredentials: true,
-      });
+      },
+    );
+    setStats(res.data.response);
+  }, []);
 
-      setTrades(res.data.response.trades);
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  const getEquityCurve = useCallback(async () => {
+    const res = await axios.get(
+      `${import.meta.env.VITE_API_URL}/analytics/equity-curve`,
+      {
+        withCredentials: true,
+      },
+    );
+
+    setEquityCurve(res.data.response);
+  }, []);
+
+  const getTrades = useCallback(async () => {
+    const res = await axios.get(`${import.meta.env.VITE_API_URL}/trades`, {
+      withCredentials: true,
+    });
+
+    setTrades(res.data.response.trades);
+  }, []);
 
   const handleLogout = async () => {
     const { error } = await authClient.signOut();
@@ -73,17 +83,60 @@ function Dashboard() {
       console.error("Logout failed:", error);
       return;
     }
-
-    navigate("/login");
+    
+    navigate("/");
   };
 
   useEffect(() => {
-    getStats();
-    getEquityCurve();
-    getTrades();
-  }, []);
+    if (!isRefreshing) return;
 
-  if (isPending) {
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousBodyOverflow = document.body.style.overflow;
+
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+    };
+  }, [isRefreshing]);
+
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        await Promise.all([getStats(), getEquityCurve(), getTrades()]);
+      } catch (error) {
+        console.error("Failed to load dashboard:", error);
+        toast.error("Failed to load dashboard data. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadDashboard();
+  }, [getStats, getEquityCurve, getTrades]);
+
+  const refreshDashboard = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([getTrades(), getStats(), getEquityCurve()]);
+    } catch (error) {
+      console.error("Failed to refresh dashboard:", error);
+      toast.error("Failed to refresh dashboard. Please try again.");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const formatCurrency = (value) =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 2,
+    }).format(Number(value) || 0);
+
+  if (isPending || isLoading) {
     return (
       <div className="spinner">
         <span className="loader"></span>
@@ -108,8 +161,8 @@ function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      <header className="border-b border-zinc-800 bg-zinc-950/55 fixed w-full backdrop-blur-md z-1">
+    <div className="relative min-h-screen bg-zinc-950! text-zinc-100!">
+      <header className="border-b border-zinc-800 bg-zinc-950/55 fixed w-full backdrop-blur-md z-10">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <div>
             <div className="text-lg font-semibold tracking-tight">
@@ -129,12 +182,7 @@ function Dashboard() {
                 Import CSV
               </button>
 
-              <button
-                onClick={() => navigate("/trades/new")}
-                className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-400"
-              >
-                + Add Trade
-              </button>
+              <AddTradeModal onTradeAdded={refreshDashboard} />
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger className="h-10 w-10 overflow-hidden rounded-full outline-none ring-offset-zinc-950 transition hover:ring-2 hover:ring-emerald-500 focus:ring-2 focus:ring-emerald-500">
@@ -181,14 +229,14 @@ function Dashboard() {
       <main className="mx-auto max-w-7xl px-6 py-8 pt-24!">
         <section className="greeting-header mb-8 flex items-end justify-between">
           <div>
-            <p className="mb-1 text-sm text-zinc-500">Monday, September 28</p>
+            <p className="mb-1 text-sm text-zinc-500">{today}</p>
 
             <h1 className="text-3xl font-semibold tracking-tight">
-              Good afternoon {session.user.name}.
+              {greeting} {session.user.name}.
             </h1>
 
             <p className="mt-2 text-sm text-zinc-400">
-              Here's how your trading is looking this week.
+              Here's how your trading is looking.
             </p>
           </div>
 
@@ -235,7 +283,9 @@ function Dashboard() {
             <p className="text-sm text-zinc-500">Total P&L</p>
 
             <div className="mt-2 flex items-end justify-between gap-4">
-              <p className="text-2xl font-semibold">₹ {stats.totalPnl}</p>
+              <p className="text-2xl font-semibold">
+                ₹ {formatCurrency(stats.totalPnl)}
+              </p>
 
               <span
                 className={`text-xs font-medium ${
@@ -341,7 +391,7 @@ function Dashboard() {
         </section>
 
         <section className="daily-pnl mt-6 ">
-          <PnlHeatmap data={stats} tradesData = {trades} />
+          <PnlHeatmap data={stats} tradesData={trades} formatCurrency={formatCurrency}/>
         </section>
 
         <section className="recent-section mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3 items-start">
@@ -364,57 +414,63 @@ function Dashboard() {
             </div>
 
             <div className="max-h-[420px] overflow-y-auto no-scrollbar divide-y divide-zinc-800">
-              {trades.map((trade) => (
-                <button
-                  key={trade?.id}
-                  onClick={() => navigate("/trades")}
-                  className="grid w-full grid-cols-5 items-center px-6 py-4 text-left transition hover:bg-zinc-800/40"
-                >
-                  <div>
-                    <p className="text-sm font-medium">{trade.symbol}</p>
+              {trades.length === 0 ? (
+                <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
+                  <p className="text-sm font-medium text-zinc-300">
+                    No trades yet
+                  </p>
+                </div>
+              ) : (
+                trades.map((trade) => (
+                  <button
+                    key={trade?.id}
+                    onClick={() => navigate("/trades")}
+                    className="grid w-full grid-cols-5 items-center px-6 py-4 text-left transition hover:bg-zinc-800/40"
+                  >
+                    <div>
+                      <p className="text-sm font-medium">{trade.symbol}</p>
 
-                    <p className="mt-1 text-xs text-zinc-600">{trade.time}</p>
-                  </div>
+                      <p className="mt-1 text-xs text-zinc-600">{trade.time}</p>
+                    </div>
 
-                  <div>
-                    <p className="text-xs text-zinc-500">Strategy</p>
+                    <div>
+                      <p className="text-xs text-zinc-500">Strategy</p>
 
-                    <p className="mt-1 text-xs">{trade.strategy}</p>
-                  </div>
+                      <p className="mt-1 text-xs">{trade?.strategyTag}</p>
+                    </div>
 
-                  <div>
-                    <span
-                      className={`rounded px-2 py-1 text-[10px] font-semibold ${
-                        trade.side === "BUY"
-                          ? "bg-emerald-500/10 text-emerald-400"
-                          : "bg-red-500/10 text-red-400"
-                      }`}
-                    >
-                      {trade.side}
-                    </span>
-                  </div>
+                    <div>
+                      <span
+                        className={`rounded px-2 py-1 text-[10px] font-semibold ${
+                          trade.side === "BUY"
+                            ? "bg-emerald-500/10 text-emerald-400"
+                            : "bg-red-500/10 text-red-400"
+                        }`}
+                      >
+                        {trade.side}
+                      </span>
+                    </div>
 
-                  <div>
-                    <p
-                      className={`text-sm font-medium ${
-                        trade.pnl.startsWith("+")
-                          ? "text-emerald-400"
-                          : "text-red-400"
-                      }`}
-                    >
-                      {trade.pnl}
-                    </p>
+                    <div>
+                      <p
+                        className={`text-sm font-medium ${
+                          trade.pnl >= 0 ? "text-emerald-400" : "text-red-400"
+                        }`}
+                      >
+                        {formatCurrency(trade.pnl)}
+                      </p>
 
-                    <p className="mt-1 text-xs text-zinc-600">{trade.r}</p>
-                  </div>
+                      <p className="mt-1 text-xs text-zinc-600">{trade.r}</p>
+                    </div>
 
-                  <div className="text-right">
-                    <span className="text-xs text-zinc-500">
-                      {trade.emotionTag}
-                    </span>
-                  </div>
-                </button>
-              ))}
+                    <div className="text-right">
+                      <span className="text-xs text-zinc-500">
+                        {trade.emotionTag}
+                      </span>
+                    </div>
+                  </button>
+                ))
+              )}
             </div>
           </div>
 
@@ -450,6 +506,15 @@ function Dashboard() {
           </div>
         </section>
       </main>
+
+      {isRefreshing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/30 backdrop-blur-[2px]">
+          <div className="flex items-center gap-3 rounded-xl border border-zinc-700 bg-zinc-900 px-5 py-4 shadow-xl">
+            <Loader2 className="h-5 w-5 animate-spin text-emerald-400" />
+            <span className="text-sm text-zinc-200">Updating dashboard...</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

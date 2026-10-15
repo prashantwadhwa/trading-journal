@@ -6,7 +6,6 @@ import Decimal from "decimal.js";
 
 dotenv.config();
 
-
 const router = express.Router();
 
 const VALID_SIDES = ["BUY", "SELL"];
@@ -111,7 +110,6 @@ router.get("/", requireAuth, async (req, res) => {
         pagination: { page, limit, totalTrades, totalPages },
       },
     });
-    
   } catch (error) {
     console.error(error);
     res.status(500).json({
@@ -225,8 +223,8 @@ router.post("/", requireAuth, async (req, res) => {
         notes,
         pnl,
         riskRewardRatio,
-        openedAt,
-        closedAt,
+        openedAt: new Date(openedAt),
+        closedAt: closedAt ? new Date(closedAt) : null,
       },
     });
 
