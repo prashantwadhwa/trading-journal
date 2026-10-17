@@ -4,12 +4,31 @@ import prisma from "../config/prisma.js";
 import requireAuth from "../middleware/authMiddleware.js";
 import Decimal from "decimal.js";
 
+import multer from "multer";
+import { parse } from "csv-parse/sync";
+import { mapCsvColumns } from "../../utils/mapCsvColumns.js";
+import { normalizeCsvRow } from "../../utils/csvColumnAliases.js";
+
 dotenv.config();
 
 const router = express.Router();
 
 const VALID_SIDES = ["BUY", "SELL"];
 const VALID_EMOTIONS = ["CONFIDENT", "FOMO", "BORED", "ANXIOUS", "REVENGE"];
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, //5mb max file size,
+  },
+  fileFilter: (req, file, cb) => {
+    if (!file.originalname.toLowerCase().endsWith(".csv")) {
+      return cb(new Error("Only CSV files are allowed."));
+    }
+
+    cb(null, true);
+  },
+});
 
 router.get("/", requireAuth, async (req, res) => {
   try {
@@ -378,6 +397,242 @@ router.delete("/:id", requireAuth, async (req, res) => {
 
     return res.status(500).json({
       message: "Something went wrong",
+    });
+  }
+});
+
+router.post(
+  "/import/preview",
+  requireAuth,
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          message: "Please upload a CSV file",
+        });
+      }
+
+      const rows = parse(req.file.buffer, {
+        bom: true,
+        columns: (headers) => headers.map((header) => header.trim()),
+        skip_empty_lines: true,
+        trim: true,
+      });
+
+      if (rows.length === 0) {
+        return res.status(400).json({
+          message: "CSV file is empty",
+        });
+      }
+
+      const headers = Object.keys(rows[0]);
+
+      const columnMap = mapCsvColumns(headers);
+
+      const normalizedRows = rows.map((row) => normalizeCsvRow(row, columnMap));
+
+      const requiredHeaders = [
+        "symbol",
+        "side",
+        "quantity",
+        "entryPrice",
+        "openedAt",
+      ];
+
+      const missingHeaders = requiredHeaders.filter(
+        (header) => !columnMap[header],
+      );
+
+      if (missingHeaders.length > 0) {
+        return res.status(400).json({
+          message: "CSV is missing required trade information",
+          missingHeaders,
+          detectedColumns: columnMap,
+        });
+      }
+
+      const validatedRows = normalizedRows.map((row, index) => {
+        const errors = [];
+
+        if (!row.symbol?.trim()) {
+          errors.push("Symbol is required");
+        }
+
+        for (const field of ["quantity", "entryPrice"]) {
+          const value = Number(row[field]);
+
+          if (!row[field]?.trim() || !Number.isFinite(value) || value <= 0) {
+            errors.push(`${field} must be positive`);
+          }
+        }
+
+        for (const field of ["openedAt"]) {
+          if (!row[field]?.trim() || Number.isNaN(Date.parse(row[field]))) {
+            errors.push(`${field} must be a valid date`);
+          }
+        }
+
+        return {
+          rowNumber: index + 2,
+          valid: errors.length === 0,
+          errors,
+          data: row,
+        };
+      });
+
+      return res.status(200).json({
+        totalRows: rows.length,
+        preview: validatedRows.slice(0,10),
+        rows: validatedRows,
+      });
+    } catch (error) {
+      console.error("CSV preview error:", error);
+
+      return res.status(400).json({
+        message: "Unable to parse CSV file",
+      });
+    }
+  },
+);
+
+router.post("/import", requireAuth, async (req, res) => {
+  try {
+    const { rows } = req.body;
+    const userId = req.user.id;
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({
+        message: "No trades provided",
+      });
+    }
+
+    if (rows.length > 1000) {
+      return res.status(400).json({
+        message: "Maximum 1000 trades per import",
+      });
+    }
+
+    const validatedTrades = [];
+
+    for (let index = 0; index < rows.length; index++) {
+      const row = rows[index];
+      const errors = [];
+
+      const side = String(row.side || "")
+        .trim()
+        .toUpperCase();
+      const emotionTag = String(row.emotionTag || "")
+        .trim()
+        .toUpperCase();
+
+      if (!row.symbol?.trim()) {
+        errors.push("Symbol is required");
+      }
+
+      if (!VALID_SIDES.includes(side)) {
+        errors.push("Invalid side");
+      }
+
+      const numericFields = ["quantity", "entryPrice"];
+
+      for (const field of numericFields) {
+        const value = row[field];
+
+        if (
+          value === undefined ||
+          value === null ||
+          String(value).trim() === "" ||
+          !Number.isFinite(Number(value)) ||
+          Number(value) <= 0
+        ) {
+          errors.push(`${field} must be a positive number`);
+        }
+      }
+
+      const openedAt = row.openedAt ? new Date(row.openedAt) : null;
+      const closedAt = row.closedAt ? new Date(row.closedAt) : null;
+
+      if (!row.openedAt || Number.isNaN(openedAt.getTime())) {
+        errors.push("Invalid trade dates");
+      }
+
+      if (errors.length > 0) {
+        return res.status(400).json({
+          message: "Import validation failed",
+          rowNumber: index + 2,
+          errors,
+        });
+      }
+
+      const qty = new Decimal(row.quantity);
+      const entry = new Decimal(row.entryPrice);
+
+      const exit = row.exitPrice ? new Decimal(row.exitPrice) : null;
+      const stop = row.stopLoss ? new Decimal(row.stopLoss) : null;
+      const target = row.targetPrice ? new Decimal(row.targetPrice) : null;
+
+      let pnl = null;
+      let riskRewardRatio = null;
+
+      if (exit !== null) {
+        pnl =
+          side === "BUY"
+            ? exit.minus(entry).times(qty)
+            : entry.minus(exit).times(qty);
+      }
+
+      if (stop !== null && target !== null) {
+        let risk;
+        let reward;
+
+        if (side === "BUY") {
+          risk = entry.minus(stop).abs().times(qty);
+          reward = target.minus(entry).abs().times(qty);
+        } else {
+          risk = stop.minus(entry).abs().times(qty);
+          reward = entry.minus(target).abs().times(qty);
+        }
+
+        if (!risk.isZero()) {
+          riskRewardRatio = reward.div(risk);
+        }
+      }
+
+      validatedTrades.push({
+        userId,
+        symbol: row.symbol.trim().toUpperCase(),
+        side,
+        quantity: qty.toString(),
+        entryPrice: entry.toString(),
+        exitPrice: exit?.toString() ?? null,
+        stopLoss: stop?.toString() ?? null,
+        targetPrice: target?.toString() ?? null,
+        pnl: pnl?.toString() ?? null,
+        riskRewardRatio: riskRewardRatio?.toFixed(4) ?? null,
+        emotionTag: emotionTag || null,
+        strategyTag: row.strategyTag?.trim() || null,
+        notes: row.notes?.trim() || null,
+        openedAt,
+        closedAt,
+      });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      return tx.trade.createMany({
+        data: validatedTrades,
+      });
+    });
+
+    return res.status(201).json({
+      message: "Trades imported successfully",
+      importedCount: result.count,
+    });
+  } catch (error) {
+    console.error("Trade import error:", error);
+
+    return res.status(500).json({
+      message: "Failed to import trades",
     });
   }
 });
