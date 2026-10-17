@@ -18,6 +18,7 @@ import EquityCurve from "@/components/EquityCurve/EquityCurve";
 import PnlHeatmap from "@/components/DailyHeatmap/DailyHeatmap";
 import AddTradeModal from "@/components/AddTradeModal/AddTradeModal";
 import { toast } from "sonner";
+import ImportCSV from "@/components/ImportCSV/ImportCSV";
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -176,12 +177,8 @@ function Dashboard() {
 
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate("/trades/import")}
-                className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 transition hover:bg-zinc-900"
-              >
-                Import CSV
-              </button>
+
+              <ImportCSV onCsvAdded={refreshDashboard} />
 
               <AddTradeModal onTradeAdded={refreshDashboard} />
             </div>
@@ -285,7 +282,7 @@ function Dashboard() {
 
             <div className="mt-2 flex items-end justify-between gap-4">
               <p className="text-2xl font-semibold">
-                ₹ {formatCurrency(stats.totalPnl)}
+                {formatCurrency(stats.totalPnl)}
               </p>
 
               <span
