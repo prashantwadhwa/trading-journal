@@ -117,6 +117,7 @@ function ImportCSV({ onCsvAdded }) {
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/trades/import`,
         {
+          importFormat: preview.importFormat,
           rows: validRows,
         },
         {
