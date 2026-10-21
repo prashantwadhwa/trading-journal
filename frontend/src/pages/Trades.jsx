@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import axios from "axios";
 import DashNav from "@/components/DashNav/DashNav";
+import { useAuth } from "@/context/AuthContext";
 
 const EMOTION_STYLES = {
   CONFIDENT: "bg-emerald-400/10 text-emerald-300 ring-emerald-400/20",
@@ -102,6 +103,7 @@ const normalizeTrades = (data) => {
 
 export default function Trades() {
   const [trades, setTrades] = useState([]);
+  const { data: session, isPending } = useAuth();
 
   const [pagination, setPagination] = useState({
     page: 1,
@@ -229,17 +231,38 @@ export default function Trades() {
 
   const endItem = Math.min(page * PAGE_SIZE, pagination.totalTrades);
 
+  if (isPending || loading) {
+    return (
+      <div className="spinner">
+        <span className="loader"></span>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="error-msg">
+        <span>
+          Not authenticated, please{" "}
+          <Link
+            className="text-emerald-400 hover:text-emerald-500 transition duration-300"
+            to={"/login"}
+          >
+            Login
+          </Link>
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0b0f] text-zinc-100">
-      {/* <DashNav /> */}
+      <DashNav />
 
-      <div className="mx-auto max-w-[1600px] mt-[72px] space-y-6 p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto max-w-[1600px] pt-24! space-y-6 p-4 sm:p-6 lg:p-8">
         {/* Page header */}
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-amber-400">
-              Trading journal
-            </p>
 
             <h1 className="mt-1 text-3xl font-semibold tracking-tight text-white">
               My Trades

@@ -149,9 +149,9 @@ function ImportCSV({ onCsvAdded }) {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger>
-        <div className="rounded-lg px-4! py-2.5! text-sm font-semibold border-zinc-700 bg-zinc-900 text-white hover:bg-zinc-800 flex gap-1">
-          <Upload className="mr-2 h-4 w-4" />
-          Import CSV
+        <div className="rounded-lg px-4! py-2.5! border-zinc-700 bg-zinc-900 max-md:bg-zinc-500/20 text-white hover:bg-zinc-800 flex gap-1 whitespace-nowrap">
+          <Upload className="mr-2 h-4 w-4 max-md:hidden text-sm! font-semibold" />
+          <span className="text-sm! max-md:font-medium font-semibold">Import CSV</span>
         </div>
       </DialogTrigger>
 
@@ -292,9 +292,8 @@ function ImportCSV({ onCsvAdded }) {
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
 
                 <p>
-                  Only the first {previewRows.length} rows are shown in this preview. 
-                  Your file contains{" "}
-                  {preview.totalRows} rows.
+                  Only the first {previewRows.length} rows are shown in this
+                  preview. Your file contains {preview.totalRows} rows.
                 </p>
               </div>
             )}

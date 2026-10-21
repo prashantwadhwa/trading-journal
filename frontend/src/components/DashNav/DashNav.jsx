@@ -16,11 +16,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { authClient } from "@/lib/auth-client";
 import { useAuth } from "@/context/AuthContext";
 
-function DashNav({refreshDashboard}) {
+function DashNav({ refreshDashboard }) {
   const navigate = useNavigate();
   const { data: session, isPending } = useAuth();
-
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleLogout = async () => {
     const { error } = await authClient.signOut();
@@ -37,7 +35,7 @@ function DashNav({refreshDashboard}) {
     <header className="border-b border-zinc-800 bg-zinc-950/55 fixed w-full backdrop-blur-md z-10">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         <div>
-          <Link to={"/"}>
+          <Link to={"/dashboard"}>
             <div className="text-lg font-semibold tracking-tight">
               Trading Journal
             </div>
@@ -47,7 +45,7 @@ function DashNav({refreshDashboard}) {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 max-md:hidden">
             <ImportCSV onCsvAdded={refreshDashboard} />
 
             <AddTradeModal onTradeAdded={refreshDashboard} />
@@ -75,6 +73,16 @@ function DashNav({refreshDashboard}) {
                     <span className="truncate text-xs font-normal text-zinc-500">
                       {session.user.email}
                     </span>
+                  </div>
+                </DropdownMenuLabel>
+              </DropdownMenuGroup>
+
+              <DropdownMenuGroup className="md:hidden block">
+                <DropdownMenuLabel className="px-3 py-2">
+                  <div className="flex items-center gap-3">
+                    <ImportCSV onCsvAdded={refreshDashboard} />
+
+                    <AddTradeModal onTradeAdded={refreshDashboard} />
                   </div>
                 </DropdownMenuLabel>
               </DropdownMenuGroup>

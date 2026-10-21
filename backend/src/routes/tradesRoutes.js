@@ -67,8 +67,8 @@ router.get("/", requireAuth, async (req, res) => {
     if (symbol?.trim) {
       where.symbol = {
         contains: symbol?.trim(),
-        mode: 'insensitive',
-      }
+        mode: "insensitive",
+      };
     }
 
     // Trade side filter
@@ -211,21 +211,27 @@ router.post("/", requireAuth, async (req, res) => {
       });
     }
 
-    let pnl = Decimal;
-    let risk = Decimal;
-    let reward = Decimal;
+    let pnl;
+    let risk;
+    let reward;
 
     if (side === "BUY") {
       pnl = exit.minus(entry).times(qty);
-      risk = entry.minus(stop).abs().times(qty);
-      reward = target.minus(entry).abs().times(qty);
+      risk = entry.minus(stop).times(qty);
+      reward = target.minus(entry).times(qty);
     } else if (side === "SELL") {
       pnl = entry.minus(exit).times(qty);
-      risk = stop.minus(entry).abs().times(qty);
-      reward = entry.minus(target).abs().times(qty);
+      risk = stop.minus(entry).times(qty);
+      reward = entry.minus(target).times(qty);
     } else {
       return res.status(400).json({
         message: "Invalid trade side",
+      });
+    }
+
+    if (risk.isNegative() || reward.isNegative()) {
+      return res.status(400).json({
+        message: "Invalid stop-loss or target for trade side",
       });
     }
 
@@ -776,22 +782,22 @@ router.post("/import", requireAuth, async (req, res) => {
 
       const exit =
         row.exitPrice !== undefined &&
-          row.exitPrice !== null &&
-          String(row.exitPrice).trim() !== ""
+        row.exitPrice !== null &&
+        String(row.exitPrice).trim() !== ""
           ? new Decimal(row.exitPrice)
           : null;
 
       const stop =
         row.stopLoss !== undefined &&
-          row.stopLoss !== null &&
-          String(row.stopLoss).trim() !== ""
+        row.stopLoss !== null &&
+        String(row.stopLoss).trim() !== ""
           ? new Decimal(row.stopLoss)
           : null;
 
       const target =
         row.targetPrice !== undefined &&
-          row.targetPrice !== null &&
-          String(row.targetPrice).trim() !== ""
+        row.targetPrice !== null &&
+        String(row.targetPrice).trim() !== ""
           ? new Decimal(row.targetPrice)
           : null;
 
