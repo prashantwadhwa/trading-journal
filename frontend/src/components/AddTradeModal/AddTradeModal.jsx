@@ -148,11 +148,14 @@ function AddTradeModal({ onTradeAdded }) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen} data-lenis-prevent>
-      <DialogTrigger className="rounded-lg bg-emerald-500 px-4! py-2! text-sm font-semibold text-zinc-950 hover:bg-emerald-400">
-        + Add Trade
+      <DialogTrigger className="rounded-lg bg-emerald-500 px-4! py-2! text-sm! font-semibold text-zinc-950 hover:bg-emerald-400 whitespace-nowrap">
+        <span className="text-sm! font-medium">Add Trade</span>
       </DialogTrigger>
 
-      <DialogContent data-lenis-prevent className="max-h-[90vh] scrollbar-none overflow-y-auto border-zinc-800 bg-zinc-900 text-white sm:max-w-2xl">
+      <DialogContent
+        data-lenis-prevent
+        className="max-h-[90vh] scrollbar-none overflow-y-auto border-zinc-800 bg-zinc-900 text-white sm:max-w-2xl"
+      >
         <DialogHeader>
           <DialogTitle className="text-xl">Add Trade</DialogTitle>
           <DialogDescription className="text-zinc-400">
