@@ -7,13 +7,16 @@ import Signup from "./pages/Signup";
 import Home from "./pages/Home";
 import SmoothScroll from "./components/SmoothScroll/SmoothScroll";
 import FrontNav from "./components/FrontNav/FrontNav";
+import Trades from "./pages/Trades";
 
 function Layout() {
   const location = useLocation();
 
   return (
     <>
-      {location.pathname !== "/dashboard" && <FrontNav />}
+      {location.pathname !== "/dashboard" &&
+        location.pathname !== "/trades" && <FrontNav />}
+
       <SmoothScroll />
       <Routes>
         <Route path="/" element={<Home />} />
@@ -21,6 +24,7 @@ function Layout() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/create" element={<CreateSetup />} />
+        <Route path="/trades" element={<Trades />} />
       </Routes>
     </>
   );

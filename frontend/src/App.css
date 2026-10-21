@@ -127,3 +127,7 @@ main {
     transform: rotateY(3600deg);
   }
 }
+
+tbody tr td:first-child, thead tr th:first-child {
+  padding-left: 20px;
+}
