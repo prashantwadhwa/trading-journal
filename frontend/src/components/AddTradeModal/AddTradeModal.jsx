@@ -152,7 +152,7 @@ function AddTradeModal({ onTradeAdded }) {
         + Add Trade
       </DialogTrigger>
 
-      <DialogContent className="max-h-[90vh] scrollbar-none overflow-y-auto border-zinc-800 bg-zinc-900 text-white sm:max-w-2xl">
+      <DialogContent data-lenis-prevent className="max-h-[90vh] scrollbar-none overflow-y-auto border-zinc-800 bg-zinc-900 text-white sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-xl">Add Trade</DialogTitle>
           <DialogDescription className="text-zinc-400">

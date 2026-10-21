@@ -292,8 +292,8 @@ function ImportCSV({ onCsvAdded }) {
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
 
                 <p>
-                  Only the first {previewRows.length} rows are shown and
-                  available to import in this version. Your file contains{" "}
+                  Only the first {previewRows.length} rows are shown in this preview. 
+                  Your file contains{" "}
                   {preview.totalRows} rows.
                 </p>
               </div>

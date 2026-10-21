@@ -64,8 +64,11 @@ router.get("/", requireAuth, async (req, res) => {
     }
 
     // Symbol filter
-    if (symbol) {
-      where.symbol = String(symbol.toUpperCase());
+    if (symbol?.trim) {
+      where.symbol = {
+        contains: symbol?.trim(),
+        mode: 'insensitive',
+      }
     }
 
     // Trade side filter
@@ -773,22 +776,22 @@ router.post("/import", requireAuth, async (req, res) => {
 
       const exit =
         row.exitPrice !== undefined &&
-        row.exitPrice !== null &&
-        String(row.exitPrice).trim() !== ""
+          row.exitPrice !== null &&
+          String(row.exitPrice).trim() !== ""
           ? new Decimal(row.exitPrice)
           : null;
 
       const stop =
         row.stopLoss !== undefined &&
-        row.stopLoss !== null &&
-        String(row.stopLoss).trim() !== ""
+          row.stopLoss !== null &&
+          String(row.stopLoss).trim() !== ""
           ? new Decimal(row.stopLoss)
           : null;
 
       const target =
         row.targetPrice !== undefined &&
-        row.targetPrice !== null &&
-        String(row.targetPrice).trim() !== ""
+          row.targetPrice !== null &&
+          String(row.targetPrice).trim() !== ""
           ? new Decimal(row.targetPrice)
           : null;
 

@@ -29,7 +29,7 @@ export function matchTransactions(transactions) {
 
   const buyQueues = new Map(); // stores unsold quantities
   const completedTrades = []; // both buy and sell orders exist
-  const unmatchedSells = []; // only buy order, no sell to that stock
+  const unmatchedSells = []; // SELL quantities that could not be matched to earlier BUY quantities.
 
   for (const tx of sorted) {
     const key = instrumentKey(tx);

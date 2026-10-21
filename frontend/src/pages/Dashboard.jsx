@@ -67,6 +67,18 @@ function Dashboard() {
     setTrades(res.data.response.trades);
   }, []);
 
+  const refreshDashboard = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([getTrades(), getStats(), getEquityCurve()]);
+    } catch (error) {
+      console.error("Failed to refresh dashboard:", error);
+      toast.error("Failed to refresh dashboard. Please try again.");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   useEffect(() => {
     if (!isRefreshing) return;
 
@@ -130,7 +142,7 @@ function Dashboard() {
 
   return (
     <div className="relative min-h-screen bg-zinc-950! text-zinc-100!">
-      <DashNav />
+      <DashNav refreshDashboard={refreshDashboard} />
 
       <main className="mx-auto max-w-7xl px-6 py-8 pt-24!">
         <section className="greeting-header mb-8 flex items-end justify-between">
@@ -162,9 +174,8 @@ function Dashboard() {
               <p className="text-2xl font-semibold">{stats.winRate}%</p>
 
               <span
-                className={`text-xs font-medium ${
-                  stats.positive ? "text-emerald-400" : "text-red-400"
-                }`}
+                className={`text-xs font-medium ${stats.positive ? "text-emerald-400" : "text-red-400"
+                  }`}
               >
                 {stats.change}
               </span>
@@ -177,9 +188,8 @@ function Dashboard() {
               <p className="text-2xl font-semibold">{stats.avgRiskReward}</p>
 
               <span
-                className={`text-xs font-medium ${
-                  stats.positive ? "text-emerald-400" : "text-red-400"
-                }`}
+                className={`text-xs font-medium ${stats.positive ? "text-emerald-400" : "text-red-400"
+                  }`}
               >
                 {stats.change}
               </span>
@@ -194,9 +204,8 @@ function Dashboard() {
               </p>
 
               <span
-                className={`text-xs font-medium ${
-                  stats.positive ? "text-emerald-400" : "text-red-400"
-                }`}
+                className={`text-xs font-medium ${stats.positive ? "text-emerald-400" : "text-red-400"
+                  }`}
               >
                 {stats.change}
               </span>
@@ -209,9 +218,8 @@ function Dashboard() {
               <p className="text-2xl font-semibold">{stats.tradesThisWeek}</p>
 
               <span
-                className={`text-xs font-medium ${
-                  stats.positive ? "text-emerald-400" : "text-red-400"
-                }`}
+                className={`text-xs font-medium ${stats.positive ? "text-emerald-400" : "text-red-400"
+                  }`}
               >
                 {stats.change}
               </span>
@@ -354,11 +362,10 @@ function Dashboard() {
 
                     <div>
                       <span
-                        className={`rounded px-2 py-1 text-[10px] font-semibold ${
-                          trade.side === "BUY"
-                            ? "bg-emerald-500/10 text-emerald-400"
-                            : "bg-red-500/10 text-red-400"
-                        }`}
+                        className={`rounded px-2 py-1 text-[10px] font-semibold ${trade.side === "BUY"
+                          ? "bg-emerald-500/10 text-emerald-400"
+                          : "bg-red-500/10 text-red-400"
+                          }`}
                       >
                         {trade.side}
                       </span>
@@ -366,9 +373,8 @@ function Dashboard() {
 
                     <div>
                       <p
-                        className={`text-sm font-medium ${
-                          trade.pnl >= 0 ? "text-emerald-400" : "text-red-400"
-                        }`}
+                        className={`text-sm font-medium ${trade.pnl >= 0 ? "text-emerald-400" : "text-red-400"
+                          }`}
                       >
                         {formatCurrency(trade.pnl)}
                       </p>

@@ -16,7 +16,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { authClient } from "@/lib/auth-client";
 import { useAuth } from "@/context/AuthContext";
 
-function DashNav({}) {
+function DashNav({refreshDashboard}) {
   const navigate = useNavigate();
   const { data: session, isPending } = useAuth();
 
@@ -31,18 +31,6 @@ function DashNav({}) {
     }
 
     navigate("/");
-  };
-
-  const refreshDashboard = async () => {
-    setIsRefreshing(true);
-    try {
-      await Promise.all([getTrades(), getStats(), getEquityCurve()]);
-    } catch (error) {
-      console.error("Failed to refresh dashboard:", error);
-      toast.error("Failed to refresh dashboard. Please try again.");
-    } finally {
-      setIsRefreshing(false);
-    }
   };
 
   return (

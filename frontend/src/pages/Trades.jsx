@@ -201,6 +201,10 @@ export default function Trades() {
     };
   }, [fetchTrades]);
 
+  const getSideLabel = (side) => {
+    return side === "BUY" ? "LONG" : "SHORT";
+  };
+
   const updateFilter = (setter, value) => {
     setter(value === "all" ? "" : value);
     setPage(1);
@@ -335,7 +339,7 @@ export default function Trades() {
                 <label className={labelClass}>Trade side</label>
 
                 <Select
-                  value={side || "all"}
+                  value={side || "All"}
                   onValueChange={(value) => updateFilter(setSide, value)}
                 >
                   <SelectTrigger className={fieldClass}>

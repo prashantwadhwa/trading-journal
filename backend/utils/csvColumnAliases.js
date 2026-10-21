@@ -55,6 +55,15 @@ const CSV_COLUMN_ALIASES = {
   notes: ["notes", "remarks", "comment"],
 };
 
+export const normalizeSide = (value) => {
+  const side = String(value ?? "").trim().toUpperCase();
+
+  if (["BUY", "B", "PURCHASE"].includes(side)) return "BUY";
+  if (["SELL", "S", "SALE"].includes(side)) return "SELL";
+
+  throw new Error(`Invalid or missing transaction side: "${value}"`);
+};
+
 export const normalizeColumnName = (name) => {
   return String(name)
     .replace(/^\uFEFF/, "")
@@ -74,7 +83,7 @@ export const normalizeCsvRow = (row, columnMap) => {
 
   return {
     symbol: getValue("symbol").toUpperCase(),
-    side: getValue("side").toUpperCase(),
+    side: normalizeSide(getValue("side")),
     quantity: getValue("quantity"),
     entryPrice: getValue("entryPrice"),
     exitPrice: getValue("exitPrice"),
