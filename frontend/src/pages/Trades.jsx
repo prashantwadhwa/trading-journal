@@ -30,6 +30,7 @@ import {
 import axios from "axios";
 import DashNav from "@/components/DashNav/DashNav";
 import { useAuth } from "@/context/AuthContext";
+import AddTradeModal from "@/components/AddTradeModal/AddTradeModal";
 
 const EMOTION_STYLES = {
   CONFIDENT: "bg-emerald-400/10 text-emerald-300 ring-emerald-400/20",
@@ -121,8 +122,14 @@ export default function Trades() {
 
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
+  const [selectedTrade, setSelectedTrade] = useState(null);
+
+  const [mode, setMode] = useState("edit");
 
   const fetchTrades = useCallback(
     async (signal) => {
@@ -135,8 +142,12 @@ export default function Trades() {
           limit: PAGE_SIZE,
         };
 
-        if (search.trim()) {
-          params.symbol = search.trim().toUpperCase();
+        const query = search.trim();
+
+        if (query && query.length >= 3) {
+          params.symbol = query.toUpperCase();
+        } else if (query.length > 0 && query.length < 3) {
+          return;
         }
 
         if (strategy.trim()) {
@@ -184,6 +195,7 @@ export default function Trades() {
       } finally {
         if (!signal?.aborted) {
           setLoading(false);
+          setInitialLoading(false);
         }
       }
     },
@@ -231,12 +243,19 @@ export default function Trades() {
 
   const endItem = Math.min(page * PAGE_SIZE, pagination.totalTrades);
 
-  if (isPending || loading) {
+  if (isPending || initialLoading) {
     return (
       <div className="spinner">
         <span className="loader"></span>
       </div>
     );
+  }
+
+  const tradeHandler = (trade) => {
+    console.log(trade)
+    setSelectedTrade(trade);
+    setIsTradeModalOpen(true);
+    setMode("edit");
   }
 
   if (!session) {
@@ -442,13 +461,20 @@ export default function Trades() {
           )}
         </div>
 
+        < AddTradeModal
+          modalOpen={isTradeModalOpen}
+          onOpenChange={setIsTradeModalOpen}
+          trade={selectedTrade}
+          mode={mode}
+        />
+
         {/* Trades table */}
         <div className={`${surface} overflow-hidden`}>
           <div className="flex flex-col gap-1 border-b border-white/[0.08] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="font-semibold text-white">Trade history</h2>
               <p className="text-sm text-zinc-400">
-                Your most recently opened trades appear first.
+                Your most recently opened trades appear first. Click any trade to edit/delete it.
               </p>
             </div>
 
@@ -564,6 +590,7 @@ export default function Trades() {
                       <TableRow
                         key={tradeId}
                         className="border-white/[0.06] transition-colors hover:bg-white/[0.03]"
+                        onClick={() => tradeHandler(trade)}
                       >
                         <TableCell className="font-semibold text-white">
                           {trade.symbol || "—"}
@@ -571,13 +598,12 @@ export default function Trades() {
 
                         <TableCell>
                           <span
-                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${
-                              isLong
-                                ? "bg-emerald-400/10 text-emerald-300 ring-emerald-400/20"
-                                : isShort
-                                  ? "bg-rose-400/10 text-rose-300 ring-rose-400/20"
-                                  : "bg-white/5 text-zinc-400 ring-white/10"
-                            }`}
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${isLong
+                              ? "bg-emerald-400/10 text-emerald-300 ring-emerald-400/20"
+                              : isShort
+                                ? "bg-rose-400/10 text-rose-300 ring-rose-400/20"
+                                : "bg-white/5 text-zinc-400 ring-white/10"
+                              }`}
                           >
                             {isLong && <ArrowUpRight className="h-3.5 w-3.5" />}
 
@@ -602,15 +628,14 @@ export default function Trades() {
                         </TableCell>
 
                         <TableCell
-                          className={`font-semibold tabular-nums ${
-                            pnlNumber === null || !Number.isFinite(pnlNumber)
-                              ? "text-zinc-500"
-                              : pnlNumber > 0
-                                ? "text-emerald-400"
-                                : pnlNumber < 0
-                                  ? "text-rose-400"
-                                  : "text-zinc-300"
-                          }`}
+                          className={`font-semibold tabular-nums ${pnlNumber === null || !Number.isFinite(pnlNumber)
+                            ? "text-zinc-500"
+                            : pnlNumber > 0
+                              ? "text-emerald-400"
+                              : pnlNumber < 0
+                                ? "text-rose-400"
+                                : "text-zinc-300"
+                            }`}
                         >
                           {formatNumber(pnl)}
                         </TableCell>
@@ -622,10 +647,9 @@ export default function Trades() {
                         <TableCell>
                           {trade.emotionTag ? (
                             <span
-                              className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${
-                                EMOTION_STYLES[emotionKey] ??
+                              className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${EMOTION_STYLES[emotionKey] ??
                                 "bg-white/5 text-zinc-300 ring-white/10"
-                              }`}
+                                }`}
                             >
                               {trade.emotionTag}
                             </span>
