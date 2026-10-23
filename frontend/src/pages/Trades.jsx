@@ -35,10 +35,10 @@ import AddTradeModal from "@/components/AddTradeModal/AddTradeModal";
 const EMOTION_STYLES = {
   CONFIDENT: "bg-emerald-400/10 text-emerald-300 ring-emerald-400/20",
   CALM: "bg-sky-400/10 text-sky-300 ring-sky-400/20",
-  GREEDY: "bg-amber-400/10 text-amber-300 ring-amber-400/20",
+  BORED: "bg-amber-400/10 text-amber-300 ring-amber-400/20",
   FOMO: "bg-violet-400/10 text-violet-300 ring-violet-400/20",
   ANXIOUS: "bg-orange-400/10 text-orange-300 ring-orange-400/20",
-  FRUSTRATED: "bg-rose-400/10 text-rose-300 ring-rose-400/20",
+  REVENGE: "bg-rose-400/10 text-rose-300 ring-rose-400/20",
 };
 
 const surface = "rounded-xl border border-white/[0.08] bg-[#11131a]";
@@ -409,13 +409,13 @@ export default function Trades() {
                   </SelectTrigger>
 
                   <SelectContent className={selectContentClass}>
-                    <SelectItem value="All">All emotions</SelectItem>
+                    <SelectItem value="">All emotions</SelectItem>
                     <SelectItem value="CONFIDENT">Confident</SelectItem>
                     <SelectItem value="ANXIOUS">Anxious</SelectItem>
-                    <SelectItem value="GREEDY">Greedy</SelectItem>
-                    <SelectItem value="FOMO">FOMO</SelectItem>
+                    <SelectItem value="BORED">Bored</SelectItem>
+                    <SelectItem value="FOMO">Fomo</SelectItem>
                     <SelectItem value="CALM">Calm</SelectItem>
-                    <SelectItem value="FRUSTRATED">Frustrated</SelectItem>
+                    <SelectItem value="REVENGE">Revenge</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
