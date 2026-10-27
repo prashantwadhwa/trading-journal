@@ -24,10 +24,7 @@ import { toast } from "sonner";
 import axios from "axios";
 import { Loader2 } from "lucide-react";
 
-function AddTradeModal({ onTradeAdded, modalOpen,
-  onOpenChange,
-  trade,
-  mode, }) {
+function AddTradeModal({ onTradeAdded, modalOpen, onOpenChange, trade, mode }) {
   const [symbol, setSymbol] = useState("");
   const [side, setSide] = useState("BUY");
   const [openedAt, setOpenedAt] = useState("");
@@ -99,6 +96,15 @@ function AddTradeModal({ onTradeAdded, modalOpen,
     setClosedAt(values.closedAt ?? "");
   };
 
+  const isFormValid =
+    symbol.trim() !== "" &&
+    side !== "" &&
+    quantity !== "" &&
+    Number(quantity) > 0 &&
+    entryPrice !== "" &&
+    Number(entryPrice) > 0 &&
+    openedAt !== "";
+
   const addTrade = async () => {
     try {
       const res = await axios.post(
@@ -132,6 +138,22 @@ function AddTradeModal({ onTradeAdded, modalOpen,
 
   const editTrade = async () => {
     try {
+      const hasChanges =
+        symbol !== (trade.symbol ?? "") ||
+        side !== (trade.side ?? "") ||
+        String(quantity) !== String(trade.quantity ?? "") ||
+        String(entryPrice) !== String(trade.entryPrice ?? "") ||
+        String(exitPrice ?? "") !== String(trade.exitPrice ?? "") ||
+        String(stopLoss ?? "") !== String(trade.stopLoss ?? "") ||
+        String(targetPrice ?? "") !== String(trade.targetPrice ?? "") ||
+        (strategyTag ?? "") !== (trade.strategyTag ?? "") ||
+        (emotionTag ?? "") !== (trade.emotionTag ?? "") ||
+        (notes ?? "") !== (trade.notes ?? "");
+
+      if (!hasChanges) {
+        toast.info("No changes detected");
+        return false;
+      }
       const res = await axios.patch(
         `${import.meta.env.VITE_API_URL}/trades/${trade.id}`,
         {
@@ -159,38 +181,77 @@ function AddTradeModal({ onTradeAdded, modalOpen,
       toast.error("Something went wrong");
       return false;
     }
-  }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (isSubmitting) return;
+
     setIsSubmitting(true);
 
     try {
-      const success =
+      const success = mode === "edit" ? await editTrade() : await addTrade();
+
+      if (!success) return;
+
+      toast.success(
         mode === "edit"
-          ? await editTrade()
-          : await addTrade();
+          ? "Trade edited successfully"
+          : "Trade added successfully",
+      );
 
-      if (success) {
-        toast.success(
-          mode === "edit"
-            ? "Trade edited successfully"
-            : "Trade added successfully",
-        );
+      // setOpen(false);
+      onOpenChange(false);
+      resetForm();
 
-        setOpen(false);
-        onOpenChange(false)
-        resetForm();
+      try {
         await onTradeAdded?.();
+      } catch (error) {
+        console.error("Failed to refresh trades:", error);
       }
+    } catch (error) {
+      console.error("Failed to save trade:", error);
+
+      toast.error(error.response?.data?.message || "Failed to save trade");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (isSubmitting || !trade?.id) return;
+
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this trade?",
+    );
+
+    if (!confirmed) return;
+
+    setIsSubmitting(true);
+
+    try {
+      await axios.delete(`${import.meta.env.VITE_API_URL}/trades/${trade.id}`, {
+        withCredentials: true,
+      });
+
+      toast.success("Trade deleted successfully");
+
+      setOpen(false);
+      onOpenChange(false);
+      resetForm();
+
+      await onTradeAdded?.();
+    } catch (error) {
+      console.error(error.response?.data || error);
+
+      toast.error(error.response?.data?.message || "Failed to delete trade");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   useEffect(() => {
-
     if (mode === "edit" && trade) {
       resetForm({
         symbol: trade.symbol,
@@ -205,31 +266,30 @@ function AddTradeModal({ onTradeAdded, modalOpen,
         notes: trade.notes,
         openedAt: trade.openedAt,
         closedAt: trade.closedAt,
-      })
+      });
     } else {
       resetForm();
     }
-
-
-  }, [mode, trade?.id])
-
+  }, [mode, trade?.id]);
 
   return (
     <Dialog open={modalOpen} onOpenChange={onOpenChange} data-lenis-prevent>
-      {/* {mode === "create" && ( */}
-        <DialogTrigger className="rounded-lg bg-emerald-500 px-4! py-2! text-sm! font-semibold text-zinc-950 hover:bg-emerald-400 whitespace-nowrap">
-          <span className="text-sm! font-medium">Add Trade</span>
-        </DialogTrigger>
-      {/* )} */}
+      <DialogTrigger className="rounded-lg bg-emerald-500 px-4! py-2! text-sm! font-semibold text-zinc-950 hover:bg-emerald-400 whitespace-nowrap has-[.trades-addTradeModal]:hidden">
+        <span className="text-sm! font-medium">Add Trade</span>
+      </DialogTrigger>
 
       <DialogContent
         data-lenis-prevent
         className="max-h-[90vh] scrollbar-none overflow-y-auto border-zinc-800 bg-zinc-900 text-white sm:max-w-2xl"
       >
         <DialogHeader>
-          <DialogTitle className="text-xl">{mode === "create" ? "Add Trade" : "Edit Trade"}</DialogTitle>
+          <DialogTitle className="text-xl">
+            {mode === "create" ? "Add Trade" : "Edit Trade"}
+          </DialogTitle>
           <DialogDescription className="text-zinc-400">
-            {mode === "create" ? "Record your position and review its performance." : "Edit or Delete your existing position."}
+            {mode === "create"
+              ? "Record your position and review its performance."
+              : "Edit or Delete your existing position."}
           </DialogDescription>
         </DialogHeader>
 
@@ -249,7 +309,7 @@ function AddTradeModal({ onTradeAdded, modalOpen,
                   className="border-zinc-700 bg-zinc-800"
                   value={symbol}
                   onChange={(e) => setSymbol(e.target.value)}
-                  required
+                  required={mode === "create"}
                 />
               </Field>
 
@@ -279,7 +339,7 @@ function AddTradeModal({ onTradeAdded, modalOpen,
                   className="border-zinc-700 bg-zinc-800"
                   value={openedAt}
                   onChange={(e) => setOpenedAt(e.target.value)}
-                  required
+                  required={mode === "create"}
                 />
               </Field>
 
@@ -292,7 +352,7 @@ function AddTradeModal({ onTradeAdded, modalOpen,
                   className="border-zinc-700 bg-zinc-800"
                   value={closedAt}
                   onChange={(e) => setClosedAt(e.target.value)}
-                  required
+                  required={mode === "create"}
                 />
               </Field>
             </div>
@@ -317,7 +377,7 @@ function AddTradeModal({ onTradeAdded, modalOpen,
                   onChange={(e) => setEntryPrice(e.target.value)}
                   placeholder="1203.00"
                   className="border-zinc-700 bg-zinc-800"
-                  required
+                  required={mode === "create"}
                 />
               </Field>
 
@@ -333,7 +393,7 @@ function AddTradeModal({ onTradeAdded, modalOpen,
                   onChange={(e) => setExitPrice(e.target.value)}
                   placeholder="1300.00"
                   className="border-zinc-700 bg-zinc-800"
-                  required
+                  required={mode === "create"}
                 />
               </Field>
 
@@ -349,7 +409,7 @@ function AddTradeModal({ onTradeAdded, modalOpen,
                   onChange={(e) => setQuantity(e.target.value)}
                   placeholder="50"
                   className="border-zinc-700 bg-zinc-800"
-                  required
+                  required={mode === "create"}
                 />
               </Field>
 
@@ -389,7 +449,7 @@ function AddTradeModal({ onTradeAdded, modalOpen,
                   onChange={(e) => setStopLoss(e.target.value)}
                   placeholder="1150.00"
                   className="border-zinc-700 bg-zinc-800"
-                  required
+                  required={mode === "create"}
                 />
               </Field>
 
@@ -405,7 +465,7 @@ function AddTradeModal({ onTradeAdded, modalOpen,
                   onChange={(e) => setTargetPrice(e.target.value)}
                   placeholder="1500.00"
                   className="border-zinc-700 bg-zinc-800"
-                  required
+                  required={mode === "create"}
                 />
               </Field>
             </div>
@@ -414,8 +474,9 @@ function AddTradeModal({ onTradeAdded, modalOpen,
               <div className="rounded-lg border border-zinc-800 bg-zinc-800/60 p-3">
                 <p className="text-xs text-zinc-400">Net P&L (preview)</p>
                 <p
-                  className={`mt-1 text-lg font-semibold ${(pnl ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"
-                    }`}
+                  className={`mt-1 text-lg font-semibold ${
+                    (pnl ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"
+                  }`}
                 >
                   {pnl === null
                     ? "—"
@@ -457,7 +518,7 @@ function AddTradeModal({ onTradeAdded, modalOpen,
                 <FieldLabel htmlFor="emotionTag">Emotion</FieldLabel>
                 <Select
                   name="emotionTag"
-                  required
+                  required={mode === "create"}
                   value={emotionTag}
                   onValueChange={setEmotionTag}
                 >
@@ -495,7 +556,7 @@ function AddTradeModal({ onTradeAdded, modalOpen,
           <div className="flex justify-end gap-3 border-t border-zinc-800 pt-4">
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !isFormValid}
               className="bg-emerald-500 hover:bg-emerald-400 font-semibold text-zinc-950"
             >
               {isSubmitting ? (
@@ -503,25 +564,28 @@ function AddTradeModal({ onTradeAdded, modalOpen,
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Adding Trade...
                 </>
-              ) : "Save Trade"}
+              ) : (
+                "Save Trade"
+              )}
             </Button>
 
-            {
-              mode === "edit" && (
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="bg-red-500 hover:bg-red-400 font-semibold text-zinc-950"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Deleting Trade...
-                    </>
-                  ) : "Delete Trade"}
-                </Button>)
-            }
-
+            {mode === "edit" && (
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                onClick={handleDelete}
+                className="bg-red-500 hover:bg-red-400 font-semibold text-zinc-950"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Deleting Trade...
+                  </>
+                ) : (
+                  "Delete Trade"
+                )}
+              </Button>
+            )}
           </div>
         </form>
       </DialogContent>

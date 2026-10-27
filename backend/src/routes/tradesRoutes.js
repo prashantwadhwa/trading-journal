@@ -351,7 +351,11 @@ router.patch("/:id", requireAuth, async (req, res) => {
         targetPrice: finalTargetPrice,
 
         strategyTag: strategyTag ?? existingTrade.strategyTag,
-        emotionTag: emotionTag ?? existingTrade.emotionTag,
+        emotionTag:
+          emotionTag === undefined
+            ? existingTrade.emotionTag
+            : emotionTag || null,
+            
         notes: notes ?? existingTrade.notes,
 
         pnl,
