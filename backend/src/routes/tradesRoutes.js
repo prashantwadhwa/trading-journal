@@ -9,6 +9,7 @@ import { parse } from "csv-parse/sync";
 import { mapCsvColumns } from "../../utils/mapCsvColumns.js";
 import { normalizeCsvRow } from "../../utils/csvColumnAliases.js";
 import { matchTransactions } from "../../utils/matchTransactions.js";
+import { EmotionTag } from "../generated/prisma/enums.js";
 
 dotenv.config();
 
@@ -423,6 +424,8 @@ router.post(
         });
       }
 
+      const broker = req.body.broker || "CUSTOM";
+
       const rows = parse(req.file.buffer, {
         bom: true,
         columns: (headers) => headers.map((header) => header.trim()),
@@ -440,12 +443,10 @@ router.post(
 
       const columnMap = mapCsvColumns(headers);
 
-      // Identify broker execution CSVs using the normalized
-      // execution ID and price columns.
-      const isBrokerCsv =
-        Boolean(columnMap.sourceTradeId) && Boolean(columnMap.price);
+      // Custom format always uses the existing journal trade schema
+      const isBrokerCsv = false;
 
-      const importFormat = isBrokerCsv ? "BROKER_EXECUTIONS" : "JOURNAL_TRADES";
+      const importFormat = "JOURNAL_TRADES";
 
       const normalizedRows = rows.map((row) => {
         const normalized = normalizeCsvRow(row, columnMap);

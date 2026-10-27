@@ -153,7 +153,6 @@ function AddTradeModal({ onTradeAdded, modalOpen,
         },
       );
 
-      console.log(res)
       return true;
     } catch (error) {
       console.error(error.response?.data || error);
@@ -217,11 +216,11 @@ function AddTradeModal({ onTradeAdded, modalOpen,
 
   return (
     <Dialog open={modalOpen} onOpenChange={onOpenChange} data-lenis-prevent>
-      {mode === "create" && (
+      {/* {mode === "create" && ( */}
         <DialogTrigger className="rounded-lg bg-emerald-500 px-4! py-2! text-sm! font-semibold text-zinc-950 hover:bg-emerald-400 whitespace-nowrap">
           <span className="text-sm! font-medium">Add Trade</span>
         </DialogTrigger>
-      )}
+      {/* )} */}
 
       <DialogContent
         data-lenis-prevent

@@ -29,11 +29,22 @@ function ImportCSV({ onCsvAdded }) {
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
 
+  const [selectedFormat, setSelectedFormat] = useState(false);
+
+  const brokerOptions = [
+    { label: "Zerodha", value: "ZERODHA" },
+    { label: "Groww", value: "GROWW" },
+    { label: "Dhan", value: "DHAN" },
+    { label: "Angel One", value: "ANGEL_ONE" },
+    { label: "Custom Format", value: "CUSTOM" },
+  ];
+
   const resetModal = () => {
     setFile(null);
     setPreview(null);
     setIsPreviewing(false);
     setIsImporting(false);
+    setSelectedFormat("CUSTOM");
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -79,6 +90,7 @@ function ImportCSV({ onCsvAdded }) {
     try {
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("broker", selectedFormat);
 
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/trades/import/preview`,
@@ -151,7 +163,9 @@ function ImportCSV({ onCsvAdded }) {
       <DialogTrigger>
         <div className="rounded-lg px-4! py-2.5! border-zinc-700 bg-zinc-900 max-md:bg-zinc-500/20 text-white hover:bg-zinc-800 flex gap-1 whitespace-nowrap">
           <Upload className="mr-2 h-4 w-4 max-md:hidden text-sm! font-semibold" />
-          <span className="text-sm! max-md:font-medium font-semibold">Import CSV</span>
+          <span className="text-sm! max-md:font-medium font-semibold">
+            Import CSV
+          </span>
         </div>
       </DialogTrigger>
 
@@ -167,6 +181,43 @@ function ImportCSV({ onCsvAdded }) {
             your journal.
           </DialogDescription>
         </DialogHeader>
+
+        <div className="space-y-2">
+          <label
+            htmlFor="csvFormat"
+            className="text-sm font-medium text-zinc-200"
+          >
+            CSV Format
+          </label>
+
+          <select
+            id="csvFormat"
+            value={selectedFormat}
+            onChange={(event) => {
+              setSelectedFormat(event.target.value);
+              setFile(null);
+              setPreview(null);
+
+              if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+              }
+            }}
+            disabled={isPreviewing || isImporting}
+            className="w-full mt-2 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500 disabled:opacity-50"
+          >
+            {brokerOptions.map((broker) => (
+              <option key={broker.value} value={broker.value}>
+                {broker.label}
+              </option>
+            ))}
+          </select>
+
+          <p className="text-xs text-zinc-400">
+            {selectedFormat === "CUSTOM"
+              ? "Upload a CSV using our predefined column names and structure."
+              : `Upload a CSV exported from selected broker only.`}
+          </p>
+        </div>
 
         {/* Upload section */}
         <section className="space-y-4">

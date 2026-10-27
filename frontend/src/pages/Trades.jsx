@@ -252,7 +252,6 @@ export default function Trades() {
   }
 
   const tradeHandler = (trade) => {
-    console.log(trade)
     setSelectedTrade(trade);
     setIsTradeModalOpen(true);
     setMode("edit");
@@ -275,7 +274,7 @@ export default function Trades() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0b0f] text-zinc-100">
+    <div className="trades-page min-h-screen bg-[#0a0b0f] text-zinc-100">
       <DashNav />
 
       <div className="mx-auto max-w-[1600px] pt-24! space-y-6 p-4 sm:p-6 lg:p-8">
