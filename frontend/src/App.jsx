@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import SmoothScroll from "./components/SmoothScroll/SmoothScroll";
 import FrontNav from "./components/FrontNav/FrontNav";
 import Trades from "./pages/Trades";
+import { Toaster } from "sonner";
 
 function Layout() {
   const location = useLocation();
@@ -18,6 +19,7 @@ function Layout() {
         location.pathname !== "/trades" && <FrontNav />}
 
       <SmoothScroll />
+      <Toaster position="top-right" richColors />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/dashboard" element={<Dashboard />} />

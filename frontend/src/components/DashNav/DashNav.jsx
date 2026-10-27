@@ -20,6 +20,8 @@ function DashNav({ refreshDashboard }) {
   const navigate = useNavigate();
   const { data: session, isPending } = useAuth();
 
+  const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
+
   const handleLogout = async () => {
     const { error } = await authClient.signOut();
 
@@ -48,7 +50,13 @@ function DashNav({ refreshDashboard }) {
           <div className="flex items-center gap-3 max-md:hidden">
             <ImportCSV onCsvAdded={refreshDashboard} />
 
-            <AddTradeModal onTradeAdded={refreshDashboard} />
+            <AddTradeModal
+              modalOpen={isTradeModalOpen}
+              onOpenChange={setIsTradeModalOpen}
+              mode="create"
+              trade={null}
+              onTradeAdded={refreshDashboard}
+            />
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger className="h-10 w-10 overflow-hidden rounded-full outline-none ring-offset-zinc-950 transition hover:ring-2 hover:ring-emerald-500 focus:ring-2 focus:ring-emerald-500">

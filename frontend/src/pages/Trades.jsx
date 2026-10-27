@@ -35,10 +35,10 @@ import AddTradeModal from "@/components/AddTradeModal/AddTradeModal";
 const EMOTION_STYLES = {
   CONFIDENT: "bg-emerald-400/10 text-emerald-300 ring-emerald-400/20",
   CALM: "bg-sky-400/10 text-sky-300 ring-sky-400/20",
-  GREEDY: "bg-amber-400/10 text-amber-300 ring-amber-400/20",
+  BORED: "bg-amber-400/10 text-amber-300 ring-amber-400/20",
   FOMO: "bg-violet-400/10 text-violet-300 ring-violet-400/20",
-  FEARFUL: "bg-orange-400/10 text-orange-300 ring-orange-400/20",
-  FRUSTRATED: "bg-rose-400/10 text-rose-300 ring-rose-400/20",
+  ANXIOUS: "bg-orange-400/10 text-orange-300 ring-orange-400/20",
+  REVENGE: "bg-rose-400/10 text-rose-300 ring-rose-400/20",
 };
 
 const surface = "rounded-xl border border-white/[0.08] bg-[#11131a]";
@@ -252,11 +252,10 @@ export default function Trades() {
   }
 
   const tradeHandler = (trade) => {
-    console.log(trade)
     setSelectedTrade(trade);
     setIsTradeModalOpen(true);
     setMode("edit");
-  }
+  };
 
   if (!session) {
     return (
@@ -275,14 +274,13 @@ export default function Trades() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0b0f] text-zinc-100">
+    <div className="trades-page min-h-screen bg-[#0a0b0f] text-zinc-100">
       <DashNav />
 
       <div className="mx-auto max-w-[1600px] pt-24! space-y-6 p-4 sm:p-6 lg:p-8">
         {/* Page header */}
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-
             <h1 className="mt-1 text-3xl font-semibold tracking-tight text-white">
               My Trades
             </h1>
@@ -409,13 +407,13 @@ export default function Trades() {
                   </SelectTrigger>
 
                   <SelectContent className={selectContentClass}>
-                    <SelectItem value="all">All emotions</SelectItem>
+                    <SelectItem value="">All emotions</SelectItem>
                     <SelectItem value="CONFIDENT">Confident</SelectItem>
-                    <SelectItem value="FEARFUL">Fearful</SelectItem>
-                    <SelectItem value="GREEDY">Greedy</SelectItem>
-                    <SelectItem value="FOMO">FOMO</SelectItem>
+                    <SelectItem value="ANXIOUS">Anxious</SelectItem>
+                    <SelectItem value="BORED">Bored</SelectItem>
+                    <SelectItem value="FOMO">Fomo</SelectItem>
                     <SelectItem value="CALM">Calm</SelectItem>
-                    <SelectItem value="FRUSTRATED">Frustrated</SelectItem>
+                    <SelectItem value="REVENGE">Revenge</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -461,12 +459,14 @@ export default function Trades() {
           )}
         </div>
 
-        < AddTradeModal
-          modalOpen={isTradeModalOpen}
-          onOpenChange={setIsTradeModalOpen}
-          trade={selectedTrade}
-          mode={mode}
-        />
+        <div className="trades-addTradeModal">
+          <AddTradeModal
+            modalOpen={isTradeModalOpen}
+            onOpenChange={setIsTradeModalOpen}
+            trade={selectedTrade}
+            mode={mode}
+          />
+        </div>
 
         {/* Trades table */}
         <div className={`${surface} overflow-hidden`}>
@@ -474,7 +474,8 @@ export default function Trades() {
             <div>
               <h2 className="font-semibold text-white">Trade history</h2>
               <p className="text-sm text-zinc-400">
-                Your most recently opened trades appear first. Click any trade to edit/delete it.
+                Your most recently opened trades appear first. Click any trade
+                to edit/delete it.
               </p>
             </div>
 
@@ -589,7 +590,7 @@ export default function Trades() {
                     return (
                       <TableRow
                         key={tradeId}
-                        className="border-white/[0.06] transition-colors hover:bg-white/[0.03]"
+                        className="border-white/[0.06] transition-colors hover:bg-white/[0.03] cursor-pointer"
                         onClick={() => tradeHandler(trade)}
                       >
                         <TableCell className="font-semibold text-white">
@@ -598,12 +599,13 @@ export default function Trades() {
 
                         <TableCell>
                           <span
-                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${isLong
-                              ? "bg-emerald-400/10 text-emerald-300 ring-emerald-400/20"
-                              : isShort
-                                ? "bg-rose-400/10 text-rose-300 ring-rose-400/20"
-                                : "bg-white/5 text-zinc-400 ring-white/10"
-                              }`}
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${
+                              isLong
+                                ? "bg-emerald-400/10 text-emerald-300 ring-emerald-400/20"
+                                : isShort
+                                  ? "bg-rose-400/10 text-rose-300 ring-rose-400/20"
+                                  : "bg-white/5 text-zinc-400 ring-white/10"
+                            }`}
                           >
                             {isLong && <ArrowUpRight className="h-3.5 w-3.5" />}
 
@@ -628,14 +630,15 @@ export default function Trades() {
                         </TableCell>
 
                         <TableCell
-                          className={`font-semibold tabular-nums ${pnlNumber === null || !Number.isFinite(pnlNumber)
-                            ? "text-zinc-500"
-                            : pnlNumber > 0
-                              ? "text-emerald-400"
-                              : pnlNumber < 0
-                                ? "text-rose-400"
-                                : "text-zinc-300"
-                            }`}
+                          className={`font-semibold tabular-nums ${
+                            pnlNumber === null || !Number.isFinite(pnlNumber)
+                              ? "text-zinc-500"
+                              : pnlNumber > 0
+                                ? "text-emerald-400"
+                                : pnlNumber < 0
+                                  ? "text-rose-400"
+                                  : "text-zinc-300"
+                          }`}
                         >
                           {formatNumber(pnl)}
                         </TableCell>
@@ -647,9 +650,10 @@ export default function Trades() {
                         <TableCell>
                           {trade.emotionTag ? (
                             <span
-                              className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${EMOTION_STYLES[emotionKey] ??
+                              className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${
+                                EMOTION_STYLES[emotionKey] ??
                                 "bg-white/5 text-zinc-300 ring-white/10"
-                                }`}
+                              }`}
                             >
                               {trade.emotionTag}
                             </span>

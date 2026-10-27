@@ -1,4 +1,43 @@
 const CSV_COLUMN_ALIASES = {
+  symbol: [
+    "symbol",
+    "trading_symbol",
+    "tradingsymbol",
+    "instrument",
+    "instrument_name",
+    "stock",
+    "name",
+  ],
+
+  side: ["side", "trade_type", "transaction_type", "action", "buy_sell"],
+
+  quantity: ["quantity", "qty", "trade_quantity"],
+
+  entryPrice: ["entryPrice", "entry_price", "entry", "buy_price"],
+
+  exitPrice: ["exitPrice", "exit_price", "exit", "sell_price"],
+
+  stopLoss: ["stopLoss", "stop_loss", "sl"],
+
+  targetPrice: ["targetPrice", "target_price", "target"],
+
+  strategyTag: ["strategyTag", "strategy_tag", "strategy"],
+
+  emotionTag: ["emotionTag", "emotion_tag", "emotion"],
+
+  notes: ["notes", "remarks", "comment", "description"],
+
+  openedAt: [
+    "openedAt",
+    "opened_at",
+    "entry_date",
+    "entry_time",
+    "trade_date",
+    "date",
+  ],
+
+  closedAt: ["closedAt", "closed_at", "exit_date", "exit_time", "close_time"],
+
   isin: ["isin"],
 
   exchange: ["exchange"],
@@ -7,56 +46,26 @@ const CSV_COLUMN_ALIASES = {
 
   series: ["series"],
 
+  importSource: ["importSource", "import_source"],
+
+  reconciliationKey: ["reconciliationKey", "reconciliation_key"],
+
+  // Accepted for compatibility with broker execution CSVs.
   sourceTradeId: ["trade_id", "tradeid", "execution_id"],
 
-  openedAt: [
-    "openedAt",
-    "opened_at",
-    "trade_date",
-    "order_execution_time",
-    "timestamp",
-    "date",
-  ],
-
-  side: ["side", "trade_type", "transaction_type", "action", "buy_sell"],
-  symbol: [
-    "symbol",
-    "name",
-    "tradingsymbol",
-    "trading_symbol",
-    "instrument",
-    "instrument_name",
-  ],
-
-  quantity: ["quantity", "qty", "trade_quantity", "filled_quantity"],
-
-  entryPrice: [
-    "entryPrice",
-    "entry_price",
-    "buy_price",
-    "average_price",
+  price: [
     "price",
+    "trade_price",
+    "execution_price",
+    "fill_price",
+    "average_price",
   ],
-
-  price: ["price", "trade_price", "execution_price", "fill_price"],
-
-  exitPrice: ["exitPrice", "exit_price", "sell_price", "close_price"],
-
-  closedAt: ["closedAt", "closed_at", "exit_time", "close_time"],
-
-  stopLoss: ["stopLoss", "stop_loss", "sl"],
-
-  targetPrice: ["targetPrice", "target_price", "target"],
-
-  emotionTag: ["emotionTag", "emotion"],
-
-  strategyTag: ["strategyTag", "strategy"],
-
-  notes: ["notes", "remarks", "comment"],
 };
 
 export const normalizeSide = (value) => {
-  const side = String(value ?? "").trim().toUpperCase();
+  const side = String(value ?? "")
+    .trim()
+    .toUpperCase();
 
   if (["BUY", "B", "PURCHASE"].includes(side)) return "BUY";
   if (["SELL", "S", "SALE"].includes(side)) return "SELL";
@@ -85,22 +94,29 @@ export const normalizeCsvRow = (row, columnMap) => {
     symbol: getValue("symbol").toUpperCase(),
     side: normalizeSide(getValue("side")),
     quantity: getValue("quantity"),
+
     entryPrice: getValue("entryPrice"),
     exitPrice: getValue("exitPrice"),
     stopLoss: getValue("stopLoss"),
     targetPrice: getValue("targetPrice"),
-    emotionTag: getValue("emotionTag").toUpperCase(),
+
     strategyTag: getValue("strategyTag"),
+    emotionTag: getValue("emotionTag").toUpperCase(),
     notes: getValue("notes"),
+
     openedAt: getValue("openedAt"),
     closedAt: getValue("closedAt"),
-    
-    price: getValue("price"),
 
     isin: getValue("isin"),
     exchange: getValue("exchange").toUpperCase(),
     segment: getValue("segment").toUpperCase(),
     series: getValue("series").toUpperCase(),
+
+    importSource: getValue("importSource"),
+    reconciliationKey: getValue("reconciliationKey"),
+
+    // Broker execution fields; not Trade model fields.
+    price: getValue("price"),
     sourceTradeId: getValue("sourceTradeId"),
   };
 };

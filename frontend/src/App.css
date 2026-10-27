@@ -77,7 +77,8 @@ main {
   margin-top: 0;
 }
 
-.spinner, .error-msg {
+.spinner,
+.error-msg {
   background: #09090b;
   min-height: 100vh;
   display: flex;
@@ -128,6 +129,11 @@ main {
   }
 }
 
-tbody tr td:first-child, thead tr th:first-child {
+tbody tr td:first-child,
+thead tr th:first-child {
   padding-left: 20px;
+}
+
+.trades-addTradeModal [data-slot="dialog-trigger"] {
+  display: none !important;
 }
