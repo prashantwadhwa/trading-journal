@@ -29,14 +29,14 @@ function ImportCSV({ onCsvAdded }) {
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
 
-  const [selectedFormat, setSelectedFormat] = useState(false);
+  const [selectedFormat, setSelectedFormat] = useState("CUSTOM");
 
   const brokerOptions = [
+    { label: "Custom Format", value: "CUSTOM" },
     { label: "Zerodha", value: "ZERODHA" },
     { label: "Groww", value: "GROWW" },
     { label: "Dhan", value: "DHAN" },
     { label: "Angel One", value: "ANGEL_ONE" },
-    { label: "Custom Format", value: "CUSTOM" },
   ];
 
   const resetModal = () => {
@@ -213,9 +213,21 @@ function ImportCSV({ onCsvAdded }) {
           </select>
 
           <p className="text-xs text-zinc-400">
-            {selectedFormat === "CUSTOM"
-              ? "Upload a CSV using our predefined column names and structure."
-              : `Upload a CSV exported from selected broker only.`}
+            {selectedFormat === "CUSTOM" ? (
+              <>
+                Upload a CSV using our predefined column names and structure.
+                <a
+                  href="./public/templates/trading-pnl-template.csv"
+                  className="text-emerald-500 hover:text-emerald-400"
+                  download="trading-pnl-template.csv"
+                >
+                  {" "}
+                  Download CSV Template
+                </a>
+              </>
+            ) : (
+              <>Upload a CSV exported from selected broker only.</>
+            )}
           </p>
         </div>
 

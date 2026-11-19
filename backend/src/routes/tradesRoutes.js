@@ -355,7 +355,7 @@ router.patch("/:id", requireAuth, async (req, res) => {
           emotionTag === undefined
             ? existingTrade.emotionTag
             : emotionTag || null,
-            
+
         notes: notes ?? existingTrade.notes,
 
         pnl,
@@ -428,8 +428,6 @@ router.post(
         });
       }
 
-      const broker = req.body.broker || "CUSTOM";
-
       const rows = parse(req.file.buffer, {
         bom: true,
         columns: (headers) => headers.map((header) => header.trim()),
@@ -445,30 +443,26 @@ router.post(
 
       const headers = Object.keys(rows[0]);
 
-      const columnMap = mapCsvColumns(headers);
+      // const columnMap = mapCsvColumns(headers);
 
-      // Custom format always uses the existing journal trade schema
-      const isBrokerCsv = false;
+      const importFormat = "CUSTOM";
 
-      const importFormat = "JOURNAL_TRADES";
+      // const normalizedRows = rows.map((row) => {
+      //   const normalized = normalizeCsvRow(row, columnMap);
 
-      const normalizedRows = rows.map((row) => {
-        const normalized = normalizeCsvRow(row, columnMap);
+      //   return normalized;
+      // });
 
-        if (isBrokerCsv) {
-          // Broker execution price is not necessarily entryPrice.
-          normalized.price = String(row[columnMap.price] ?? "").trim();
-        }
-
-        return normalized;
-      });
-
-      const requiredHeaders = isBrokerCsv
-        ? ["symbol", "side", "quantity", "price", "openedAt", "sourceTradeId"]
-        : ["symbol", "side", "quantity", "entryPrice", "openedAt"];
+      const requiredHeaders = [
+        "symbol",
+        "side",
+        "quantity",
+        "entryPrice",
+        "openedAt",
+      ];
 
       const missingHeaders = requiredHeaders.filter(
-        (header) => !columnMap[header],
+        (header) => !headers.includes(header),
       );
 
       if (missingHeaders.length > 0) {
@@ -476,56 +470,98 @@ router.post(
           message: "CSV is missing required trade information",
           importFormat,
           missingHeaders,
-          detectedColumns: columnMap,
+          detectedColumns: headers,
         });
       }
 
-      const validatedRows = normalizedRows.map((row, index) => {
+      const validatedRows = rows.map((row, index) => {
         const errors = [];
 
-        if (!row.symbol?.trim()) {
+        const symbol = row.symbol?.trim();
+        const side = row.side?.trim().toUpperCase();
+
+        if (!symbol) {
           errors.push("Symbol is required");
         }
 
-        if (!["BUY", "SELL"].includes(row.side)) {
+        if (!["BUY", "SELL"].includes(side)) {
           errors.push("Side must be BUY or SELL");
         }
 
-        const quantity = Number(row.quantity);
+        for (const field of ["quantity", "entryPrice"]) {
+          const value = String(row[field] ?? "").trim();
+
+          if (
+            !value?.trim() ||
+            !/^\d+(\.\d+)?$/.test(value) ||
+            !Number.isFinite(Number(value)) ||
+            Number(value) <= 0
+          ) {
+            errors.push(`${field} must be a positive number`);
+          }
+        }
+
+        for (const field of ["exitPrice", "stopLoss", "targetPrice"]) {
+          const value = String(row[field] ?? "").trim();
+
+          if (
+            value &&
+            (!/^-?\d+(\.\d+)?$/.test(value) || !Number.isFinite(Number(value)))
+          ) {
+            errors.push(`${field} must be a valid number`);
+          }
+        }
+
+        const openedAt = new Date(row.openedAt);
+        const closedAt = row.closedAt ? new Date(row.closedAt) : null;
+
+        if (!row.openedAt?.trim() || Number.isNaN(openedAt.getTime())) {
+          errors.push("Invalid opening date");
+        }
+
+        if (row.closedAt?.trim() && Number.isNaN(closedAt.getTime())) {
+          errors.push("Invalid closing date");
+        }
 
         if (
-          !row.quantity?.trim() ||
-          !Number.isFinite(quantity) ||
-          quantity <= 0
+          closedAt &&
+          !Number.isNaN(closedAt.getTime()) &&
+          !Number.isNaN(openedAt.getTime()) &&
+          closedAt < openedAt
         ) {
-          errors.push("Quantity must be positive");
+          errors.push("Closing date cannot be before opening date");
         }
 
-        const priceField = isBrokerCsv ? row.price : row.entryPrice;
+        const positionStatus =
+          row.positionStatus?.trim().toUpperCase() ||
+          (row.closedAt?.trim() ? "CLOSED" : "OPEN");
 
-        const price = Number(priceField);
-
-        if (!priceField?.trim() || !Number.isFinite(price) || price <= 0) {
-          errors.push(
-            isBrokerCsv
-              ? "price must be positive"
-              : "entryPrice must be positive",
-          );
+        if (!["OPEN", "CLOSED"].includes(positionStatus)) {
+          errors.push("Position status must be OPEN or CLOSED");
         }
 
-        if (!row.openedAt?.trim() || Number.isNaN(Date.parse(row.openedAt))) {
-          errors.push("openedAt must be a valid date");
+        if (positionStatus === "CLOSED" && !row.closedAt?.trim()) {
+          errors.push("Closing date is required for closed trades");
         }
 
-        if (isBrokerCsv && !row.sourceTradeId?.trim()) {
-          errors.push("Broker execution ID is required");
+        if (positionStatus === "CLOSED" && !row.exitPrice?.trim()) {
+          errors.push("Exit price is required for closed trades");
+        }
+
+        if (positionStatus === "OPEN" && row.closedAt?.trim()) {
+          errors.push("Open trades cannot have a closing date");
         }
 
         return {
           rowNumber: index + 2,
           valid: errors.length === 0,
           errors,
-          data: row,
+          data: {
+            ...row,
+            symbol: symbol?.toUpperCase(),
+            side,
+            positionStatus,
+          },
         };
       });
 
@@ -549,7 +585,7 @@ router.post(
 
 router.post("/import", requireAuth, async (req, res) => {
   try {
-    const { rows, importFormat = "JOURNAL_TRADES" } = req.body;
+    const { rows } = req.body;
     const userId = req.user.id;
 
     if (!Array.isArray(rows) || rows.length === 0) {
@@ -564,168 +600,10 @@ router.post("/import", requireAuth, async (req, res) => {
       });
     }
 
-    if (!["BROKER_EXECUTIONS", "JOURNAL_TRADES"].includes(importFormat)) {
-      return res.status(400).json({
-        message: "Invalid import format",
-      });
-    }
+    const importFormat = "CUSTOM";
 
     // =====================================================
-    // BROKER EXECUTION IMPORT
-    // =====================================================
-
-    if (importFormat === "BROKER_EXECUTIONS") {
-      const brokerTransactions = [];
-
-      for (let index = 0; index < rows.length; index++) {
-        const row = rows[index];
-        const errors = [];
-
-        const side = String(row.side || "")
-          .trim()
-          .toUpperCase();
-        const symbol = String(row.symbol || "")
-          .trim()
-          .toUpperCase();
-        const sourceTradeId = String(row.sourceTradeId || "").trim();
-
-        const quantityValue = row.quantity;
-        const priceValue = row.price;
-
-        const quantity = Number(quantityValue);
-        const price = Number(priceValue);
-
-        const executedAt = row.openedAt ? new Date(row.openedAt) : null;
-
-        if (!symbol) {
-          errors.push("Symbol is required");
-        }
-
-        if (!["BUY", "SELL"].includes(side)) {
-          errors.push("Side must be BUY or SELL");
-        }
-
-        if (
-          quantityValue === undefined ||
-          quantityValue === null ||
-          String(quantityValue).trim() === "" ||
-          !Number.isFinite(quantity) ||
-          quantity <= 0
-        ) {
-          errors.push("Quantity must be positive");
-        }
-
-        if (
-          priceValue === undefined ||
-          priceValue === null ||
-          String(priceValue).trim() === "" ||
-          !Number.isFinite(price) ||
-          price <= 0
-        ) {
-          errors.push("Price must be positive");
-        }
-
-        if (!sourceTradeId) {
-          errors.push("Broker execution ID is required");
-        }
-
-        if (!executedAt || Number.isNaN(executedAt.getTime())) {
-          errors.push("Invalid execution date");
-        }
-
-        if (errors.length > 0) {
-          return res.status(400).json({
-            message: "Broker import validation failed",
-            rowNumber: index + 2,
-            errors,
-          });
-        }
-
-        brokerTransactions.push({
-          userId,
-          sourceTradeId,
-          symbol,
-          isin: row.isin?.trim() || null,
-          exchange: row.exchange?.trim().toUpperCase() || null,
-          segment: row.segment?.trim().toUpperCase() || null,
-          series: row.series?.trim().toUpperCase() || null,
-          side,
-          quantity: String(quantityValue),
-          price: String(priceValue),
-          executedAt,
-        });
-      }
-
-      const result = await prisma.$transaction(async (tx) => {
-        // Store the source ledger. Repeated execution IDs are ignored.
-        const inserted = await tx.brokerTransaction.createMany({
-          data: brokerTransactions,
-          skipDuplicates: true,
-        });
-
-        // Always reconstruct from the complete stored ledger,
-        // not just the rows in the latest CSV.
-        const ledger = await tx.brokerTransaction.findMany({
-          where: { userId },
-          orderBy: [{ executedAt: "asc" }, { sourceTradeId: "asc" }],
-        });
-
-        const transactionsForMatching = ledger.map((transaction) => ({
-          ...transaction,
-          openedAt: transaction.executedAt,
-          quantity: transaction.quantity.toString(),
-          price: transaction.price.toString(),
-        }));
-
-        const { completedTrades, openPositions, unmatchedSells } =
-          matchTransactions(transactionsForMatching);
-
-        const reconstructedTrades = [...completedTrades, ...openPositions].map(
-          (trade) => ({
-            ...trade,
-            userId,
-          }),
-        );
-
-        // IMPORTANT:
-        // This rebuilds all generated broker trades for this user.
-        // Do not use this deletion strategy if those records contain
-        // annotations that must be preserved. See the note below.
-        await tx.trade.deleteMany({
-          where: {
-            userId,
-            importSource: "BROKER_CSV",
-          },
-        });
-
-        if (reconstructedTrades.length > 0) {
-          await tx.trade.createMany({
-            data: reconstructedTrades,
-          });
-        }
-
-        return {
-          transactionsInserted: inserted.count,
-          reconstructedCount: reconstructedTrades.length,
-          completedCount: completedTrades.length,
-          openCount: openPositions.length,
-          unmatchedSells,
-        };
-      });
-
-      return res.status(201).json({
-        message: "Broker transactions processed successfully",
-        importFormat,
-        importedCount: result.reconstructedCount,
-        transactionsInserted: result.transactionsInserted,
-        completedCount: result.completedCount,
-        openCount: result.openCount,
-        unmatchedSells: result.unmatchedSells,
-      });
-    }
-
-    // =====================================================
-    // EXISTING JOURNAL CSV IMPORT
+    // VALIDATE AND PREPARE TRADES FOR DATABASE
     // =====================================================
 
     const validatedTrades = [];
@@ -772,6 +650,16 @@ router.post("/import", requireAuth, async (req, res) => {
 
       if (row.closedAt && Number.isNaN(closedAt.getTime())) {
         errors.push("Invalid closing date");
+      }
+
+      if (
+        openedAt &&
+        closedAt &&
+        !Number.isNaN(openedAt.getTime()) &&
+        !Number.isNaN(closedAt.getTime()) &&
+        closedAt < openedAt
+      ) {
+        errors.push("Closing date cannot be before opening date");
       }
 
       if (errors.length > 0) {
@@ -854,6 +742,7 @@ router.post("/import", requireAuth, async (req, res) => {
         emotionTag: emotionTag || null,
         strategyTag: row.strategyTag?.trim() || null,
         notes: row.notes?.trim() || null,
+        positionStatus: closedAt ? "CLOSED" : "OPEN",
         openedAt,
         closedAt,
       });

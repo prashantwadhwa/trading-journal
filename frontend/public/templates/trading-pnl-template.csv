@@ -1,0 +1,4 @@
+symbol,side,quantity,entryPrice,exitPrice,stopLoss,targetPrice,pnl,openedAt,closedAt,isin,exchange,segment,series,positionStatus
+RELIANCE,BUY,10,1250.50,1270,1240,1300,195,2026-11-18 09:30:00,2026-11-18 15:20:00,INE002A01018,NSE,EQ,EQ,CLOSED
+TCS,BUY,5,3200,,,,,2026-11-18 10:00:00,,,,,OPEN
+MyTrade,BUY,5,1222,1234,1200,1400,,2026-11-18 10:00:00
